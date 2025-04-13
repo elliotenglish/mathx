@@ -1,0 +1,19 @@
+[build-system]
+requires = [
+  "setuptools"
+]
+build-backend = "setuptools.build_meta"
+install_requires=[]
+
+[project]
+name="mathx-core"
+version="1.0.0"
+dependencies=[
+  "numpy",
+  "pytest"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["xmath/*"]
+namespaces = true

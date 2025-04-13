@@ -1,0 +1,28 @@
+[build-system]
+requires = [
+  "setuptools"
+]
+build-backend = "setuptools.build_meta"
+install_requires=[]
+
+[project]
+name="mathx-fusion"
+version="1.0.0"
+dependencies=[
+  "numpy",
+  "paramak",
+  "matplotlib",
+  "pyqt6", #Needed for interactive plots
+  "desc-opt",
+  "plotly",
+  "cgal",
+  "cadquery-ocp",
+  "pytest",
+  "mathx-core",
+  "mathx-geometry"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["xmath/*"]
+namespaces = true

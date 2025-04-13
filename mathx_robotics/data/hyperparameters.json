@@ -1,0 +1,15 @@
+{
+  "q_learning_rate": 3e-4,
+  "policy_learning_rate": 3e-4,
+  "momentum": 0.9,
+  "weight_decay": 1e-3,
+  "beta": 0.9,
+  "bellman_error": 1,
+  "use_q_target_gradient": false,
+  "policy_optimality": 1,
+  "cql": 0,
+  "out_of_distribution_regularization": 0,
+  "action_regularization": 1e-2,
+  "feedback_overestimate_penalty": 0,
+  "target_learning_rate": 0.005
+}

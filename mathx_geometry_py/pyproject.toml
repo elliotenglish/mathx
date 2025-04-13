@@ -1,0 +1,23 @@
+[build-system]
+requires = [
+  "setuptools"
+]
+build-backend = "setuptools.build_meta"
+install_requires=[]
+
+[project]
+name="mathx-geometry"
+version="1.0.0"
+dependencies=[
+  "numpy",
+  "matplotlib",
+  "pyqt6", #Needed for interactive plots
+  "plotly",
+  "pytest",
+  "mathx-core"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["xmath/*"]
+namespaces = true

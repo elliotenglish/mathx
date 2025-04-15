@@ -1,0 +1,10 @@
+startup --max_idle_secs=172800
+build --cxxopt=-std=c++17
+build:macos --cxxopt=-mmacosx-version-min=12.10
+build --compilation_mode=dbg
+build --spawn_strategy=local
+build --cxxopt=-Wno-sign-compare
+build --cxxopt=-Wno-unknown-pragmas
+build --cxxopt=-Wno-unused-variable
+#TODO: This hides errors, but some libraries still use old stdlib/stl functionality.
+build --cxxopt=-Wno-deprecated-declarations

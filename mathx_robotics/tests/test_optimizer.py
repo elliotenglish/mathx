@@ -1,14 +1,14 @@
-import mathx.learning.models as clmodels
-# from mathx.learning.q_function import QFunctionComposite
-# from mathx.learning.policy_function import PolicyFunction
-from mathx.learning.database import Database
-# from mathx.learning.optimizer import Optimizer
-# from mathx.learning.hyperparameters import Hyperparameters
-from mathx.learning.custom_agent import CustomAgent
-from mathx.learning.sb3_agent import SB3Agent
+import mathx.robotics.models as clmodels
+# from mathx.robotics.q_function import QFunctionComposite
+# from mathx.robotics.policy_function import PolicyFunction
+from mathx.robotics.database import Database
+# from mathx.robotics.optimizer import Optimizer
+# from mathx.robotics.hyperparameters import Hyperparameters
+from mathx.robotics.custom_agent import CustomAgent
+from mathx.robotics.sb3_agent import SB3Agent
 from quadratic_system import QuadraticSystem
 import numpy as np
-from mathx.learning import log
+from mathx.robotics import log
 from test_config import *
 
 # import matplotlib
@@ -38,7 +38,7 @@ def test_optimizer():
   agent=CustomAgent({"beta":.9,"batch_size":batch_size},system.state_space(),system.action_space())
   # agent=SB3Agent({"beta":.9,"batch_size":batch_size},system.state_space(),system.action_space())
 
-  database=Database()
+  database=Database({})
 
   num_episodes=100
   num_steps=20

@@ -21,6 +21,7 @@ dependencies=[
   "optax",
   "flax",
   #"opencv-python",
+  "gym==0.26.2",
   "gymnasium[classic_control]",
   "matplotlib",
   "pyqt6", #Needed for interactive plots

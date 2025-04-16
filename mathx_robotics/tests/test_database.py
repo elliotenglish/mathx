@@ -1,4 +1,4 @@
-from mathx.learning.database import Database
+from mathx.robotics.database import Database
 
 def test_database():
   max_size=20

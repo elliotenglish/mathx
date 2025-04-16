@@ -1,5 +1,5 @@
-import mathx.learning.system as cls
-import mathx.learning.space as clsp
+import mathx.robotics.system as cls
+import mathx.robotics.space as clsp
 import jax.numpy as jnp
 import jax
 import random

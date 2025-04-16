@@ -1,4 +1,4 @@
-from mathx.learning.mujoco_system import MujocoSystem
+from mathx.robotics.mujoco_system import MujocoSystem
 from test_config import *
 
 import os

@@ -1,7 +1,7 @@
 import mujoco
 import jax.numpy as jnp
 import numpy as np
-from mathx.learning.mujoco_system import MujocoSystem
+from mathx.robotics.mujoco_system import MujocoSystem
 
 def GenerateXML(num_bodies,length=.4,body_prefix="body_",marker_name="marker_ee_pos"):
   body_xml=""

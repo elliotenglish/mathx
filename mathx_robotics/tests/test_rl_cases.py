@@ -1,13 +1,13 @@
 import pendulum_system
 import gymnasium_system
 import quadratic_system
-from mathx.learning.custom_agent import CustomAgent
-# from mathx.learning.acme_agent import AcmeAgent
-from mathx.learning.sb3_agent import SB3Agent
+from mathx.robotics.custom_agent import CustomAgent
+# from mathx.robotics.acme_agent import AcmeAgent
+from mathx.robotics.sb3_agent import SB3Agent
 
-from mathx.learning.solver import Solver
-from mathx.learning.mujoco_system import MujocoSystem
-from mathx.learning import log
+from mathx.robotics.solver import Solver
+from mathx.robotics.mujoco_system import MujocoSystem
+from mathx.robotics import log
 from test_config import *
 import numpy as np
 

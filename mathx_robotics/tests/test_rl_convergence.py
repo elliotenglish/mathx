@@ -1,10 +1,10 @@
-from mathx.learning.system import System
-from mathx.learning.custom_agent import CustomAgent
-# from mathx.learning.acme_agent import AcmeAgent
-from mathx.learning.sb3_agent import SB3Agent
-from mathx.learning.space import ContinuousSpace
-from mathx.learning.solver import Solver
-import mathx.learning.geometry as clgeom
+from mathx.robotics.system import System
+from mathx.robotics.custom_agent import CustomAgent
+# from mathx.robotics.acme_agent import AcmeAgent
+from mathx.robotics.sb3_agent import SB3Agent
+from mathx.robotics.space import ContinuousSpace
+from mathx.robotics.solver import Solver
+import mathx.robotics.geometry as clgeom
 from test_config import *
 import numpy as np
 import math

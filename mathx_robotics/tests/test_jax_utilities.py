@@ -1,4 +1,4 @@
-from mathx.learning import jax_utilities
+from mathx.robotics import jax_utilities
 import math
 import scipy.stats
 

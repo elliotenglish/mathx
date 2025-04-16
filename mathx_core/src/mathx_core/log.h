@@ -197,6 +197,6 @@ template <typename... Args> void log(Args... args) {
 // Helper for logging variables with name
 
 #define log_var(X, ...)                                                        \
-  mathx::log("%s=%s", #X, code::str(X __VA_OPT__(, ) __VA_ARGS__).c_str());
+  mathx::log("%s=%s", #X, mathx::str(X __VA_OPT__(, ) __VA_ARGS__).c_str());
 
 } // namespace mathx

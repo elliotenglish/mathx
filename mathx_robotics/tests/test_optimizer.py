@@ -8,7 +8,7 @@ from mathx.robotics.custom_agent import CustomAgent
 from mathx.robotics.sb3_agent import SB3Agent
 from quadratic_system import QuadraticSystem
 import numpy as np
-from mathx.robotics import log
+from mathx.core import log
 from test_config import *
 
 # import matplotlib

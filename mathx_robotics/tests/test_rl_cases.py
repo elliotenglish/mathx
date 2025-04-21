@@ -7,7 +7,7 @@ from mathx.robotics.sb3_agent import SB3Agent
 
 from mathx.robotics.solver import Solver
 from mathx.robotics.mujoco_system import MujocoSystem
-from mathx.robotics import log
+from mathx.core import log
 from test_config import *
 import numpy as np
 

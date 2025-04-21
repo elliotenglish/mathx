@@ -1,5 +1,5 @@
 import numpy as np
-from . import log
+from mathx.core import log
 import pickle
 
 class Database:

@@ -11,7 +11,7 @@ import numpy as np
 # import orbax.checkpoint
 import flax.nnx as nnx
 # import flax.training.orbax_utils
-from . import log
+from mathx.core import log
 import shutil
 import pprint
 import dm_env

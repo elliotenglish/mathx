@@ -3,7 +3,7 @@ from . import policy_function
 from . import optimizer
 from . import database
 from . import models
-from . import log
+from mathx.core import log
 from . import jax_utilities
 from .hyperparameters import Hyperparameters
 

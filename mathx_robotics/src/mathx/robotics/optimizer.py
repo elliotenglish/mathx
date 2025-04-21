@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 # import jax.nn as jnn
 # import time
-from . import log
+from mathx.core import log
 # from . import jax_utilities
 
 """

@@ -19,7 +19,7 @@ dependencies=[
   "jax",
   #"jax[cuda12]==0.4.34", #For some reason this version is much faster.
   "optax",
-  "flax",
+  "flax==0.10.4", #0.10.5 broken something so errors regarding changing trace level are emitted during flax.jit
   #"opencv-python",
   "gym==0.26.2",
   "gymnasium[classic_control]",

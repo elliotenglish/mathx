@@ -64,8 +64,9 @@ class CustomAgent(Agent):
 
   def select_action(self, observation: types.NestedArray) -> types.NestedArray:
     # return epsilon_greedy.epsilon_greedy_action(observation,self.epsilon,self.action_space,self.rand,policy=self.policy)
-    return self.action_space.clip(self.policy_fn(observation)+(self.action_space.high-self.action_space.low)*self.noise()*self.sigma)
     # return self.action_space.sample(self.rand,mean=self.policy_fn(observation),stddev=self.sigma)
+    return self.action_space.clip(self.policy_fn(observation)+(self.action_space.high-self.action_space.low)*self.noise()*self.sigma)
+    # return self.policy_fn(observation)
 
   def observe_first(self, timestep: dm_env.TimeStep):
     self.state=timestep.observation

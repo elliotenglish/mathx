@@ -53,7 +53,7 @@ class ContinuousSpace(Space):
     self.elements=[(float,float(self.low[i]),float(self.high[i]),logarithmic) for i in range(size)]
 
   def size(self):
-    len(self.elements)
+    return len(self.elements)
 
   # def element(self):
   #   return self.elements
@@ -67,12 +67,12 @@ class ContinuousSpace(Space):
   def from_real(self,x):
     return x
 
-  def sample(self,rand,mean=None,stddev=None):
-    if mean is not None:
-      arr=self.clip(rand.normal(loc=mean,scale=stddev*.5*(self.high-self.low)))
-    else:
-      arr=rand.uniform(low=self.low,high=self.high,size=len(self.elements))
-    return jnp.array(arr,dtype=jnp.float32)
+  # def sample(self,rand,mean=None,stddev=None):
+  #   if mean is not None:
+  #     arr=self.clip(rand.normal(loc=mean,scale=stddev*.5*(self.high-self.low)))
+  #   else:
+  #     arr=rand.uniform(low=self.low,high=self.high,size=len(self.elements))
+  #   return jnp.array(arr,dtype=jnp.float32)
 
   def clip(self,x):
     return jnp.clip(x,self.low,self.high)
@@ -93,7 +93,7 @@ class DiscreteSpace:
     self.elements=[(int,levels)]
 
   def size(self):
-    len(self.elements)
+    return len(self.elements)
 
   # def element(self):
   #   return self.elements
@@ -115,9 +115,9 @@ class DiscreteSpace:
       idx+=el[1]
     return np.array(arr)
 
-  def sample(self,rand,mean=None,stddev=None):
-    arr=[rand.integers(0,el[1]) for el in self.elements]
-    return jnp.array(arr)
+  # def sample(self,rand,mean=None,stddev=None):
+  #   arr=[rand.integers(0,el[1]) for el in self.elements]
+  #   return jnp.array(arr)
 
   def apply_nonlinearity(self,linear):
     idx=0

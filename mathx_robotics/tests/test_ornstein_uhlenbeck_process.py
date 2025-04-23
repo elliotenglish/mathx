@@ -7,8 +7,8 @@ from mathx.core import log
 def test_ornstein_uhlenbeck_process():
   log.initialize()
 
-  mu=0
-  sigma=1
+  mu=0.34
+  sigma=.71
   theta=0
   proc=OrnsteinUhlenbeckProcess(mu=mu,sigma=sigma,theta=theta,
                                 rand=jax_utilities.Generator(54324),

@@ -6,8 +6,8 @@ from . import models
 from mathx.core import log
 from . import jax_utilities
 from .hyperparameters import Hyperparameters
-
 from .agent import Agent
+from .ornstein_uhlenbeck_process import OrnsteinUhlenbeckProcess
 
 import os
 import dm_env
@@ -27,12 +27,14 @@ class CustomAgent(Agent):
   def __init__(self,params,state_space,action_space):
     self.epsilon=params.get("epsilon",.1)
     self.sigma=params.get("sigma",.2)
+    self.theta=params.get("theta",.2)
     self.alpha=params.get("alpha",0)
     self.state_space=state_space
     self.action_space=action_space
     random_seed=params.get("random_seed",5432453)
     # self.rand=np.random.default_rng(random_seed)
     self.rand=jax_utilities.Generator(random_seed)
+    self.noise=OrnsteinUhlenbeckProcess(mu=0,sigma=1,theta=self.theta,size=self.action_space.size(),rand=self.rand)
 
     model_params={
       **models.architecture_params,
@@ -62,7 +64,8 @@ class CustomAgent(Agent):
 
   def select_action(self, observation: types.NestedArray) -> types.NestedArray:
     # return epsilon_greedy.epsilon_greedy_action(observation,self.epsilon,self.action_space,self.rand,policy=self.policy)
-    return self.action_space.sample(self.rand,mean=self.policy_fn(observation),stddev=self.sigma)
+    return self.action_space.clip(self.policy_fn(observation)+(self.action_space.high-self.action_space.low)*self.noise()*self.sigma)
+    # return self.action_space.sample(self.rand,mean=self.policy_fn(observation),stddev=self.sigma)
 
   def observe_first(self, timestep: dm_env.TimeStep):
     self.state=timestep.observation

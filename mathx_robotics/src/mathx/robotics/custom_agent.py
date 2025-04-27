@@ -26,8 +26,8 @@ class CustomAgent(Agent):
   """
   def __init__(self,params,state_space,action_space):
     self.epsilon=params.get("epsilon",.1)
-    self.sigma=params.get("sigma",.2)
-    self.theta=params.get("theta",.2)
+    self.sigma=params.get("sigma",.05)
+    self.theta=params.get("theta",.15)
     self.alpha=params.get("alpha",0)
     self.state_space=state_space
     self.action_space=action_space

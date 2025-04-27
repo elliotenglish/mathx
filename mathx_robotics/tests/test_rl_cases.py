@@ -32,7 +32,7 @@ def run_test(name,system,agent,default_steps,default_episodes):
          max_steps=debug_value("TEST_STEPS",default_steps),
          max_episodes=debug_value("TEST_EPISODES",default_episodes),
          output_dir=name,
-         checkpoint_period=50 if debug_write() else None).solve()
+         checkpoint_period=200 if debug_write() else None).solve()
 
 def test_reinforcement_learning_quadratic1d():
   system=quadratic_system.QuadraticSystem(1,False)

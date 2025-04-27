@@ -4,9 +4,6 @@ import numpy as np
 def remove_degenerate(idx_arr):
   return [ix for ix in idx_arr if len(set(ix))==len(ix)]
 
-def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=None):
-  sshape=segments  
-  
 def compute_degenerate_idx(idx,vshape,degenerate):
   """
   See generate_mesh_volume
@@ -28,11 +25,13 @@ def compute_degenerate_idx(idx,vshape,degenerate):
 
 def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=None):
   """
+  Generates a volumetric tetrahedral mesh for a given function defining the mesh positions. The mesh can then be closed at end pairs, or degenerate at ends in either/both tangential axes.
+
   params:
-    posfn: The position function [0,1]^3 -> R^3
-    segments: The number of segments in each dimension
-    closed: Whether each end loops back on itself
-    degenerate: A 3-tuple where for each dimension, a 2-tuple contains for each end, a 2 tuple indicates whether each tangential axis is degenerate/collapsed to a single point
+    posfn: The position function [0,1]^3 -> R^3.
+    segments: The number of segments in each dimension.
+    closed: Whether each end loops back on itself.
+    degenerate: A 3-tuple where for each dimension, a 2-tuple contains for each end, a 2 tuple indicates whether each tangential axis is degenerate/collapsed to a single point.
   """
   sshape=segments
 
@@ -74,3 +73,12 @@ def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=No
   # print(tet_idx)
 
   return vtx,tet_idx
+
+def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=None):
+  """
+  params:
+    See generate_mesh_volume
+  """
+  sshape=segments 
+
+  

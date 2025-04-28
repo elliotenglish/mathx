@@ -49,7 +49,7 @@ def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
         j=[t[1] for t in tri],
         k=[t[2] for t in tri],
         # name='plasma_surface',
-        lighting_specular=.8,
+        lighting_specular=1.5,
         color=color_str(color),
         flatshading=flatshading
         # showscale=True

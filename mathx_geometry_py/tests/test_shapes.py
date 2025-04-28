@@ -13,13 +13,13 @@ def shape_test_helper(name,shape):
   # print(tri_idx)
   viz.write_visualization(
     [
-      viz.generate_mesh3d(vtx,tri_idx,color=[255,0,0],wireframe=True),
+      viz.generate_mesh3d(vtx,tri_idx,color=[255,0,0],wireframe=False,flatshading=False),
       # viz.generate_scatter3d(vtx,color=[0,0,255])
     ],
     f"{name}.html")
 
 def test_torus_hollow():
-  shape_test_helper("Torus.hollow",Torus(major_radius=2,minor_radius_inner=1.5,minor_radius_outer=1.6))
+  shape_test_helper("Torus.hollow",Torus(major_radius=2,minor_radius_inner=.5,minor_radius_outer=1))
 
 def test_torus_solid():
   shape_test_helper("Torus.solid",Torus(major_radius=2,minor_radius_inner=0,minor_radius_outer=.2))

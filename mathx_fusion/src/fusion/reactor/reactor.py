@@ -19,7 +19,6 @@ class ReactorParameters:
 class Reactor:
   def __init__(self, params: ReactorParameters):
     self.plasma_chamber=Torus(params.plasma_chamber)
-    self.magnets=
     
   def Compute(self):
     pass

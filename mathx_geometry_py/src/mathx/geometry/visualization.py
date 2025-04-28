@@ -12,28 +12,48 @@ def tetrahedron_to_triangle(tet):
 def color_str(color):
   return f"rgb({color[0]},{color[1]},{color[2]})"
 
-def generate_mesh3d(vtx,tri,color,flatshading=True):
-  return go.Mesh3d(
-      x=[v[0] for v in vtx],
-      y=[v[1] for v in vtx],
-      z=[v[2] for v in vtx],
-      # colorbar=dict(title=dict(text='z')),
-      # colorscale=[[0, 'gold'],
-      #             [0.5, 'mediumturquoise'],
-      #             [1, 'magenta']],
-      # # Intensity of each vertex, which will be interpolated and color-coded
-      # intensity=[0, 0.33, 0.66, 1],
-      # i, j and k give the vertices of triangles
-      # here we represent the 4 triangles of the tetrahedron surface
-      i=[t[0] for t in tri],
-      j=[t[1] for t in tri],
-      k=[t[2] for t in tri],
-      # name='plasma_surface',
-      lighting_specular=.8,
-      color=color_str(color),
-      flatshading=flatshading
-      # showscale=True
+def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
+  if wireframe:
+    edges=set()
+    for t in tri:
+      for i in range(3):
+        edges.add((t[i],t[(i+1)%3]))
+    x=[]
+    y=[]
+    z=[]
+    for e in edges:
+      x.extend([vtx[e[0]][0],vtx[e[1]][0],None])
+      y.extend([vtx[e[0]][1],vtx[e[1]][1],None])
+      z.extend([vtx[e[0]][2],vtx[e[1]][2],None])
+    return go.Scatter3d(
+      x=x,
+      y=y,
+      z=z,
+      mode="lines",
     )
+    
+  else:
+    return go.Mesh3d(
+        x=[v[0] for v in vtx],
+        y=[v[1] for v in vtx],
+        z=[v[2] for v in vtx],
+        # colorbar=dict(title=dict(text='z')),
+        # colorscale=[[0, 'gold'],
+        #             [0.5, 'mediumturquoise'],
+        #             [1, 'magenta']],
+        # # Intensity of each vertex, which will be interpolated and color-coded
+        # intensity=[0, 0.33, 0.66, 1],
+        # i, j and k give the vertices of triangles
+        # here we represent the 4 triangles of the tetrahedron surface
+        i=[t[0] for t in tri],
+        j=[t[1] for t in tri],
+        k=[t[2] for t in tri],
+        # name='plasma_surface',
+        lighting_specular=.8,
+        color=color_str(color),
+        flatshading=flatshading
+        # showscale=True
+      )
   
 def generate_scatter3d(vtx,color):
   return go.Scatter3d(

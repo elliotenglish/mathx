@@ -5,7 +5,7 @@ import mathx.geometry.visualization as viz
 def shape_test_helper(name,shape):
   print()
   print(name)
-  vtx,tet_idx=shape.tesselate_volume(64)
+  vtx,tet_idx=shape.tesselate_volume(32)
   print(f"vtx={len(vtx)} tet_idx={len(tet_idx)}")
   tri_idx=viz.tetrahedron_to_triangle(tet_idx)
   # print(vtx)
@@ -13,9 +13,9 @@ def shape_test_helper(name,shape):
   # print(tri_idx)
   viz.write_visualization(
     [
-      viz.generate_mesh3d(vtx,tri_idx,color=[255,0,0]),
+      viz.generate_mesh3d(vtx,tri_idx,color=[255,0,0],wireframe=True),
       # viz.generate_scatter3d(vtx,color=[0,0,255])
-      ],
+    ],
     f"{name}.html")
 
 def test_torus_hollow():

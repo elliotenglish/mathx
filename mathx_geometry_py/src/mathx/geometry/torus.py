@@ -42,8 +42,8 @@ class Torus:
     toroidal_circumference=math.pi*2*self.params.major_radius
     poloidal_circumference=math.pi*2*(self.params.minor_radius_inner+self.params.minor_radius_outer)/2
     num_toroidal=max(4,num)
-    #The 4 multiplier here is a fudge factor. We really need to look at curvature/edge angles
-    num_poloidal=max(4,4*math.ceil(poloidal_circumference/toroidal_circumference*num))
+    #The 2 multiplier here is a fudge factor. We really need to look at curvature/edge angles
+    num_poloidal=max(4,2*math.ceil(poloidal_circumference/toroidal_circumference*num))
     num_radial=math.ceil((self.params.minor_radius_outer-self.params.minor_radius_inner)/toroidal_circumference*num)
     print(f"nt={num_toroidal} np={num_poloidal} nr={num_radial}")
     return num_toroidal,num_poloidal,num_radial

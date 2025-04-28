@@ -1,13 +1,26 @@
 import plotly.graph_objects as go
 
-def tetrahedron_to_triangle(tet):
-  tri=[]
-  for t in tet:
-    tri.append([t[0],t[1],t[2]])
-    tri.append([t[1],t[3],t[2]])
-    tri.append([t[2],t[3],t[0]])
-    tri.append([t[3],t[1],t[0]])
-  return tri
+from .tetrahedron import tetrahedron_to_triangle
+
+def add_remove_dupe_simplex(simplex_map,s):
+  ss=sorted(s)
+  if ss in simplex_map:
+    del simplex_map[ss]
+  else:
+    simplex_map[ss]=s
+
+def get_boundary_faces(tets):
+  sorted_map={}
+  for tet in tets:
+    for tri in tetrahedron_to_triangle(tet):
+      tri_s=tuple(sorted(tri))
+      if tri_s in sorted_map:
+        sorted_map.pop(tri_s)
+        # print("popping")
+      else:
+        sorted_map[tri_s]=tri
+
+  return [v for k,v in sorted_map.items()]
 
 def color_str(color):
   return f"rgb({color[0]},{color[1]},{color[2]})"

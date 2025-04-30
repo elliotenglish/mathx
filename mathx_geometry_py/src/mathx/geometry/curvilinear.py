@@ -111,9 +111,9 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
             real_idx=compute_degenerate_idx(idx,vshape,degenerate)
             if idx not in vtxm:
               uvw=np.array(real_idx,dtype=np.float32)/np.array(sshape)
-              print(real_idx,sshape,uvw)
+              # print(real_idx,sshape,uvw)
               vtxm[idx]=len(vtx)
-              vtx.append(uvw)
+              vtx.append(posfn(uvw))
             vi=vtxm[idx]
             el.append(vi)
           #TODO: if e==1, reverse element vertex order

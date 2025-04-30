@@ -5,9 +5,10 @@ import mathx.geometry.visualization as viz
 def shape_test_helper(name,shape):
   print()
   print(name)
-  vtx,tet_idx=shape.tesselate_volume(16)
-  print(f"{len(vtx)=} {len(tet_idx)=}")
-  tri_idx=viz.get_boundary_faces(tet_idx)
+  # vtx,tet_idx=shape.tesselate_volume(16)
+  # print(f"{len(vtx)=} {len(tet_idx)=}")
+  # tri_idx=viz.get_boundary_faces(tet_idx)
+  vtx,tri_idx=shape.tesselate_surface(16)
   print(f"{len(tri_idx)=}")
   # print(vtx)
   # print(tet_idx)

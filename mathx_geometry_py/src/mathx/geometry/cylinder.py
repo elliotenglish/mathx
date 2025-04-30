@@ -43,11 +43,21 @@ class Cylinder:
     return num_length,num_azimuth,num_radial
 
   def tesselate_volume(self,density):
-      # Attempt to produce square elements
     segments=self.generate_density(density)
-
     return curvilinear.generate_mesh_volume(
-      lambda u,v,w:cylinder_to_xyz(self.params.radius+w*self.params.thickness,v*2*math.pi,u*self.params.length),
+      lambda u:cylinder_to_xyz(self.params.radius+u[2]*self.params.thickness,
+                               u[1]*2*math.pi,
+                               u[0]*self.params.length),
+      segments,
+      closed=(False,True,False),
+      degenerate=(None,None,((False,True if self.params.radius==0 else False),None)))
+
+  def tesselate_surface(self,density):
+    segments=self.generate_density(density)
+    return curvilinear.generate_mesh_surface(
+      lambda u:cylinder_to_xyz(self.params.radius+u[2]*self.params.thickness,
+                               u[1]*2*math.pi,
+                               u[0]*self.params.length),
       segments,
       closed=(False,True,False),
       degenerate=(None,None,((False,True if self.params.radius==0 else False),None)))

@@ -50,17 +50,26 @@ class Torus:
 
   def tesselate_volume(self,density):
     segments=self.compute_density(density)
-
     return curvilinear.generate_mesh_volume(
-      lambda u,v,w:toroid_to_xyz(self.params.major_radius,
-                                 self.params.minor_radius_inner,
-                                 self.params.minor_radius_outer,
-                                 w,
-                                 v*2*math.pi,
-                                 u*2*math.pi),
+      lambda u:toroid_to_xyz(self.params.major_radius,
+                             self.params.minor_radius_inner,
+                             self.params.minor_radius_outer,
+                             u[2],
+                             u[1]*2*math.pi,
+                             u[0]*2*math.pi),
       segments,
       closed=(True,True,False),
       degenerate=(None,None,((False,True if self.params.minor_radius_inner==0 else False),None)))
   
   def tesselate_surface(self,density):
-    num_toroidal,num_poloidal,num_radial=self.compute_density(density)
+    segments=self.compute_density(density)
+    return curvilinear.generate_mesh_surface(
+      lambda u:toroid_to_xyz(self.params.major_radius,
+                        self.params.minor_radius_inner,
+                        self.params.minor_radius_outer,
+                        u[2],
+                        u[1]*2*math.pi,
+                        u[0]*2*math.pi),
+      segments,
+      closed=(True,True,False),
+      degenerate=(None,None,((False,True if self.params.minor_radius_inner==0 else False),None)))

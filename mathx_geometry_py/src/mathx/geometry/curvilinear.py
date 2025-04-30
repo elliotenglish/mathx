@@ -47,8 +47,8 @@ def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=No
     real_idx=compute_degenerate_idx(idx,vshape,degenerate)
     if vtx_idx[real_idx]==-1:
       vtx_idx[real_idx]=len(vtx)
-      uvw=[float(real_idx[i])/sshape[i] for i in range(3)]
-      p=posfn(*uvw)
+      uvw=np.array(real_idx,dtype=np.float32)/np.array(sshape)
+      p=posfn(uvw)
       # print(f"uvw={uvw} p={p}")
       vtx.append(p)
     vtx_idx[idx]=vtx_idx[real_idx]
@@ -74,11 +74,52 @@ def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=No
 
   return vtx,tet_idx
 
+class SimplexMesh:
+  def __init__(self):
+    self.vertex=[]
+    self.element=[]
+
+  def subdivide(mesh,n):
+    #for each element, loop over d-1 codimensions, generate nodes if they don't exist, then add tesselated sub-elements
+    pass
+
 def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=None):
   """
   params:
     See generate_mesh_volume
   """
-  sshape=segments 
+  sshape=segments
 
+  vshape=tuple([n+1 if closed[i]==False else n for i,n in enumerate(segments)])
   
+  vtx=[]
+  vtxm={} #array index to linear idx
+  elem=[]
+  
+  D=3
+
+  for d in range(D):
+    for e in range(2):
+      if not closed[d]:
+        for fidx in np.ndindex(tuple([v for i,v in enumerate(sshape) if i!=d])):
+          el=[]
+          for voff in np.ndindex(tuple([2]*(D-1))):
+            idx=fidx+voff
+            print(idx)
+            idx=idx[:d]+(e*vshape[d],)+idx[d:]
+            print(fidx,voff,idx)
+            real_idx=compute_degenerate_idx(idx,vshape,degenerate)
+            if idx not in vtxm:
+              uvw=np.array(real_idx,dtype=np.float32)/np.array(sshape)
+              vtxm[idx]=len(vtx)
+              vtx.append(uvw)
+            vi=vtxm[idx]
+            el.append(vi)
+          #TODO: if e==1, reverse element vertex order
+          if e==1:
+            el=reversed(el)
+
+          # elem.append[d]
+          elem.append(el[0],el[1],el[2])
+          elem.append(el[0],el[2],el[3])
+  return vtx,elem

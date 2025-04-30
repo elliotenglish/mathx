@@ -104,22 +104,23 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
         for fidx in np.ndindex(tuple([v for i,v in enumerate(sshape) if i!=d])):
           el=[]
           for voff in np.ndindex(tuple([2]*(D-1))):
-            idx=fidx+voff
-            print(idx)
-            idx=idx[:d]+(e*vshape[d],)+idx[d:]
-            print(fidx,voff,idx)
+            idx=np.array(fidx)+np.array(voff)
+            # print(idx)
+            idx=tuple(np.concatenate([idx[:d],[e*sshape[d]],idx[d:]]).tolist())
+            # print(fidx,voff,idx)
             real_idx=compute_degenerate_idx(idx,vshape,degenerate)
             if idx not in vtxm:
               uvw=np.array(real_idx,dtype=np.float32)/np.array(sshape)
+              print(real_idx,sshape,uvw)
               vtxm[idx]=len(vtx)
               vtx.append(uvw)
             vi=vtxm[idx]
             el.append(vi)
           #TODO: if e==1, reverse element vertex order
           if e==1:
-            el=reversed(el)
+            el=[e for e in reversed(el)]
 
           # elem.append[d]
-          elem.append(el[0],el[1],el[2])
-          elem.append(el[0],el[2],el[3])
+          elem.append((el[0],el[1],el[2]))
+          elem.append((el[2],el[1],el[3]))
   return vtx,elem

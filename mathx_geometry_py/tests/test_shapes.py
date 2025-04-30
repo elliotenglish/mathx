@@ -1,5 +1,6 @@
 from mathx.geometry.torus import Torus
 from mathx.geometry.cylinder import Cylinder
+from mathx.geometry.box import Box
 import mathx.geometry.visualization as viz
 
 def shape_test_helper(name,shape):
@@ -35,3 +36,6 @@ def test_cylinder_hollow():
   
 def test_cylinder_solid():
   shape_test_helper("Cylinder.solid",Cylinder(radius=0,length=.05,thickness=.2))
+  
+def test_box():
+  shape_test_helper("Box",Box(length=[1,.75,.5]))

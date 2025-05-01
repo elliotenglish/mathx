@@ -33,7 +33,11 @@ def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=No
     closed: Whether each end loops back on itself.
     degenerate: A 3-tuple where for each dimension, a 2-tuple contains for each end, a 2 tuple indicates whether each tangential axis is degenerate/collapsed to a single point.
   """
+  D=3
+
   sshape=segments
+  for i in range(D):
+    assert sshape[i]%2==0 or closed[i]==False
 
   # vtx_arr=np.ndarray([num_toroidal,num_poloidal,num_radial+1,3])
   
@@ -68,7 +72,7 @@ def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=No
         vtx_idx[wrap(idx[0]+1,idx[1],  idx[2]+1)],
         vtx_idx[wrap(idx[0],  idx[1]+1,idx[2]+1)],
         vtx_idx[wrap(idx[0]+1,idx[1]+1,idx[2]+1)]
-      ])))
+      ],reverse=sum(idx)%2==1)))
   # print(vtx_idx)
   # print(tet_idx)
 

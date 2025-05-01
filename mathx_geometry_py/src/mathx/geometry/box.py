@@ -20,7 +20,9 @@ class Box:
   def generate_density(self,num):
     l=np.array(self.params.length,dtype=np.float32)
     max_l=np.max(l)
-    count=np.ceil(num*l/max_l).astype(np.int32)
+    count=tuple(np.ceil(num*l/max_l).astype(np.int32).tolist())
+    # print(num)
+    # print(count)
     return count
   
   def uvw_to_xyz(self,u):

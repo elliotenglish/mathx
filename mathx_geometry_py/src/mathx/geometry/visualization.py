@@ -42,7 +42,8 @@ def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
       x=x,
       y=y,
       z=z,
-      mode="lines",
+      mode="lines+markers",
+      marker_size=3
     )
     
   else:

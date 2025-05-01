@@ -9,7 +9,7 @@ def shape_test_helper(name,shape):
   # vtx,tet_idx=shape.tesselate_volume(16)
   # print(f"{len(vtx)=} {len(tet_idx)=}")
   # tri_idx=viz.get_boundary_faces(tet_idx)
-  vtx,tri_idx=shape.tesselate_surface(16)
+  vtx,tri_idx=shape.tesselate_surface(32)
   print(f"{len(tri_idx)=}")
   # print(vtx)
   # print(tet_idx)
@@ -19,7 +19,7 @@ def shape_test_helper(name,shape):
       viz.generate_mesh3d(vtx,
                           tri_idx,
                           color=[255,0,0],
-                          wireframe=True,
+                          wireframe=False,
                           flatshading=True),
       # viz.generate_scatter3d(vtx,color=[0,0,255])
     ],
@@ -35,7 +35,7 @@ def test_cylinder_hollow():
   shape_test_helper("Cylinder.hollow",Cylinder(radius=.1,length=.05,thickness=.2))
   
 def test_cylinder_solid():
-  shape_test_helper("Cylinder.solid",Cylinder(radius=0,length=.05,thickness=.2))
+  shape_test_helper("Cylinder.solid",Cylinder(radius=0,length=.6,thickness=.2))
   
 def test_box():
   shape_test_helper("Box",Box(length=[1,.75,.5]))

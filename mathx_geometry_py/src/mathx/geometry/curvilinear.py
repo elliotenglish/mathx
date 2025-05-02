@@ -36,11 +36,12 @@ def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=No
   D=3
 
   sshape=segments
-  for i in range(D):
-    assert sshape[i]%2==0 or closed[i]==False
+  # for i in range(D):
+  #   # assert sshape[i]%2==0 or closed[i]==False
+  sshape=tuple([(s+1 if (closed[i] and s%2==1) else s) for i,s in enumerate(sshape)])
 
   # vtx_arr=np.ndarray([num_toroidal,num_poloidal,num_radial+1,3])
-  
+
   vshape=tuple([n+1 if closed[i]==False else n for i,n in enumerate(segments)])
   # print(f"vshape={vshape} sshape={sshape}")
 
@@ -95,11 +96,11 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
   sshape=segments
 
   vshape=tuple([n+1 if closed[i]==False else n for i,n in enumerate(segments)])
-  
+
   vtx=[]
   vtxm={} #array index to linear idx
   elem=[]
-  
+
   D=3
 
   for d in range(D):
@@ -125,7 +126,7 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
           #TODO: if e==1, reverse element vertex order
           if e==1:
             el=[e for e in reversed(el)]
-            
+
           # print(el)
 
           # elem.append[d]
@@ -133,3 +134,53 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
             [(el[0],el[1],el[2]),
              (el[2],el[1],el[3])]))
   return vtx,elem
+
+class Curvilinear:
+  D: int = 3
+
+  def __init__(self,
+               posfn: callable,
+               closed=(False,False,False),
+               degenerate=(None,None,None),
+               min_segments=(1,1,1)):
+    self.posfn=posfn
+    self.closed=closed
+    self.degenerate=degenerate
+    self.min_segments=min_segments
+
+  def compute_density(self,num):
+    num_steps=16
+    ls=np.array([0.]*self.D)
+    for d in range(self.D):
+      p=np.array([0.5]*self.D)
+      l=0
+      for i in range(num_steps):
+        p[d]=float(i)/num_steps
+        x0=self.posfn(p)
+        p[d]=float(i+1)/num_steps
+        x1=self.posfn(p)
+        dx=np.linalg.norm(x1-x0)
+        # print(x0,x1,dx)
+        l+=dx
+      ls[d]=l
+    segments=tuple(np.ceil(num*ls/np.max(ls)).astype(int).tolist())
+    # print(f"{ls=} {segments=} {num=}")
+    return segments
+
+  def tesselate_volume(self,density):
+    segments=self.compute_density(density)
+    if self.min_segments:
+      segments=tuple([max(self.min_segments[d],s) for d,s in enumerate(segments)])
+    return generate_mesh_volume(
+      self.posfn,
+      segments,
+      closed=self.closed,
+      degenerate=self.degenerate)
+
+  def tesselate_surface(self,density):
+    segments=self.compute_density(density)
+    return generate_mesh_surface(
+      self.posfn,
+      segments,
+      closed=self.closed,
+      degenerate=self.degenerate)

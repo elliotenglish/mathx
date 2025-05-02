@@ -2,7 +2,7 @@ import numpy as np
 import math
 from dataclasses import dataclass
 
-from . import curvilinear
+from .curvilinear import Curvilinear
 
 def cylinder_to_xyz(rho,phi,z):
   """
@@ -15,49 +15,30 @@ def cylinder_to_xyz(rho,phi,z):
   x=rho*math.cos(phi)
   y=rho*math.sin(phi)
 
-  return (x,y,z)
+  return x,y,z
 
-class Cylinder:
-  @dataclass
-  class Parameters:
-    radius: float
-    thickness: float
-    length: float
+@dataclass
+class Parameters:
+  radius: float
+  thickness: float
+  length: float
 
-  def __init__(self,
-               params: Parameters = None,
-               **kwargs):
-    if params is not None:
-      self.params=params
-    else:
-      self.params=Cylinder.Parameters(**kwargs)
+def Cylinder(params: Parameters = None, **kwargs):
+  if params is None:
+    params=Parameters(**kwargs)
+  return Curvilinear(lambda u:np.array(
+    cylinder_to_xyz(params.radius+u[2]*params.thickness,
+                    u[1]*2*math.pi,
+                    u[0]*params.length)),
+    closed=(False,True,False),
+    degenerate=(None,None,((False,True if params.radius==0 else False),None)))
 
-  def generate_density(self,num):
-    circumference=math.pi*2*(self.params.radius+self.params.thickness/2)
-    num_azimuth=max(4,num)
-    num_length=math.ceil(self.params.length/circumference*num)
-    num_radial=math.ceil(self.params.thickness/circumference*num)
-    # num_length=1#
-    # num_radial=1#
-    print(f"na={num_azimuth} nl={num_length} nr={num_radial}")
-    return num_length,num_azimuth,num_radial
-
-  def tesselate_volume(self,density):
-    segments=self.generate_density(density)
-    return curvilinear.generate_mesh_volume(
-      lambda u:cylinder_to_xyz(self.params.radius+u[2]*self.params.thickness,
-                               u[1]*2*math.pi,
-                               u[0]*self.params.length),
-      segments,
-      closed=(False,True,False),
-      degenerate=(None,None,((False,True if self.params.radius==0 else False),None)))
-
-  def tesselate_surface(self,density):
-    segments=self.generate_density(density)
-    return curvilinear.generate_mesh_surface(
-      lambda u:cylinder_to_xyz(self.params.radius+u[2]*self.params.thickness,
-                               u[1]*2*math.pi,
-                               u[0]*self.params.length),
-      segments,
-      closed=(False,True,False),
-      degenerate=(None,None,((False,True if self.params.radius==0 else False),None)))
+#   def generate_density(self,num):
+#     circumference=math.pi*2*(self.params.radius+self.params.thickness/2)
+#     num_azimuth=max(4,num)
+#     num_length=math.ceil(self.params.length/circumference*num)
+#     num_radial=math.ceil(self.params.thickness/circumference*num)
+#     # num_length=1#
+#     # num_radial=1#
+#     print(f"na={num_azimuth} nl={num_length} nr={num_radial}")
+#     return num_length,num_azimuth,num_radial

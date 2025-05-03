@@ -92,6 +92,9 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
   """
   params:
     See generate_mesh_volume
+
+  TODO:
+    Make this differentiable by instead returning the local space points. Then we can get the derivative by JAX posfn and then taking derivatives with respect to the local space points.
   """
   sshape=segments
 

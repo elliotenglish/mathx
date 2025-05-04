@@ -38,6 +38,12 @@ class Plasma:
   def get_surface(self,x):
     pass
   
+def get_test_equilibrium(path="equilibrium.h5"):
+  if not os.path.exists(path):
+    eq_sol=generate_test_equilibrium()
+    
+    eq_sol.save(path)
 
-def get_test_plasma(path="equilibrium.h5"):
-
+  eq=desc.io.load(path)
+  
+  return eq

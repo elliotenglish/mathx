@@ -4,9 +4,12 @@ import math
 
 from mathx.geometry.torus import Torus
 from mathx.geometry.cylinder import Cylinder
+from mathx.fusion import plasma
 from .magnet import Magnet
 
 from dataclasses import dataclass
+import jax
+import jax.numpy as jnp
 
 @dataclass
 class ReactorParameters:
@@ -16,29 +19,34 @@ class ReactorParameters:
   # diagnostic_ports: list[Port.Parameters]
   # diverter_ports: list[Port.Parameters]
 
-def surface_fn(u):
-  """
-  params:
-    u: \vec{u}=(u,v,w) as a np.ndarray, u \in [0,2*pi], v\in [0,2*pi], w in [0,inf]
 
-  return:
-    x: \vec{x}=(x,y,z) as a np.ndarray
+class Reactor:
+  def __init__(self):
+    self.plasma_equilibrium=plasma.get_test_equilibrium()
+    self.primary_chamber=Torus(major_radius=1,minor_radius_inner=0,minor_radius_outer=0.2)
 
-  Algorithm:
-    \vec{xs}=posfn(u,v,0)
-
-    du=\frac{\partial\vec{xs}}{u}
-    dv=\frac{\partial\vec{xs}}{u}
-    \vec{n}=\frac{d0\times d1}{|d0||d1|}
-
-    \vec{x}=\vec{xs}+w*\vec{n}
-  """
+  def surface_fn(self,u):
+    return self.primary_chamber.pos_fn(jnp.concatenate([u,[1]]))
+  
+  def structure_fn(self,u):
+    norm_fn=curv.surface_normal_transform(self.surface_fn)
+    x=surface_fn(u[:2])
+    n=norm_fn(u[:2])
+    return x+n*u[2]
 
 class Reactor:
   def __init__(self, params: ReactorParameters):
     self.plasma_chamber=Torus(params.plasma_chamber)
+    self.wall_thickness=.05
+    self.wall=curv.Curvilinear(
+      lambda u: self.structure_fn(jnp.array([u[0],u[1],u[2]*self.wall_thickness])),
+      closed=(True,True,False),
+      min_segments=(4,4,1))
+    self.density=16
 
-  def Compute(self):
+  def generate(self):
+    return self.wall.tesselate_surface(self.density)
+    
     #1 Define plasma chamber using surface_fn
     #2 Define magnets as grid on offset surface_fn
     #3 Define ports using surface_fn

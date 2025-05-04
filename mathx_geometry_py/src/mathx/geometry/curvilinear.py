@@ -25,12 +25,12 @@ def compute_degenerate_idx(idx,vshape,degenerate):
   #   print(f"{idx} {real_idx}")
   return tuple(real_idx)
 
-def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=None):
+def generate_mesh_volume(pos_fn,segments,closed=(False,False,False),degenerate=None):
   """
   Generates a volumetric tetrahedral mesh for a given function defining the mesh positions. The mesh can then be closed at end pairs, or degenerate at ends in either/both tangential axes.
 
   params:
-    posfn: The position function [0,1]^3 -> R^3.
+    pos_fn: The position function [0,1]^3 -> R^3.
     segments: The number of segments in each dimension.
     closed: Whether each end loops back on itself.
     degenerate: A 3-tuple where for each dimension, a 2-tuple contains for each end, a 2 tuple indicates whether each tangential axis is degenerate/collapsed to a single point.
@@ -55,7 +55,7 @@ def generate_mesh_volume(posfn,segments,closed=(False,False,False),degenerate=No
     if vtx_idx[real_idx]==-1:
       vtx_idx[real_idx]=len(vtx)
       uvw=np.array(real_idx,dtype=np.float32)/np.array(sshape)
-      p=posfn(uvw)
+      p=pos_fn(uvw)
       # print(f"uvw={uvw} p={p}")
       vtx.append(p)
     vtx_idx[idx]=vtx_idx[real_idx]
@@ -90,13 +90,13 @@ class SimplexMesh:
     #for each element, loop over d-1 codimensions, generate nodes if they don't exist, then add tesselated sub-elements
     pass
 
-def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=None):
+def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=None):
   """
   params:
     See generate_mesh_volume
 
   TODO:
-    Make this differentiable by instead returning the local space points. Then we can get the derivative by JAX posfn and then taking derivatives with respect to the local space points.
+    Make this differentiable by instead returning the local space points. Then we can get the derivative by JAX pos_fn and then taking derivatives with respect to the local space points.
   """
   sshape=segments
 
@@ -125,7 +125,7 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
               uvw=np.array(real_idx,dtype=np.float32)/np.array(sshape)
               # print(real_idx,sshape,uvw)
               vtxm[idx]=len(vtx)
-              vtx.append(posfn(uvw))
+              vtx.append(pos_fn(uvw))
             vi=vtxm[real_idx]
             el.append(vi)
           #TODO: if e==1, reverse element vertex order
@@ -143,7 +143,7 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
 def surface_normal_transform(pos_fn):
   """
   Transform a surface function f(x,y) into a function that returns the normal:
-  \vec{xs}=posfn(u,v)
+  \vec{xs}=pos_fn(u,v)
 
   du=\frac{\partial\vec{xs}}{u}
   dv=\frac{\partial\vec{xs}}{u}
@@ -166,11 +166,11 @@ class Curvilinear:
   D: int = 3
 
   def __init__(self,
-               posfn: callable,
+               pos_fn: callable,
                closed=(False,False,False),
                degenerate=(None,None,None),
                min_segments=(1,1,1)):
-    self.posfn=posfn
+    self.pos_fn=pos_fn
     self.closed=closed
     self.degenerate=degenerate
     self.min_segments=min_segments
@@ -183,9 +183,9 @@ class Curvilinear:
       l=0
       for i in range(num_steps):
         p[d]=float(i)/num_steps
-        x0=self.posfn(p)
+        x0=self.pos_fn(p)
         p[d]=float(i+1)/num_steps
-        x1=self.posfn(p)
+        x1=self.pos_fn(p)
         dx=np.linalg.norm(x1-x0)
         # print(x0,x1,dx)
         l+=dx
@@ -199,7 +199,7 @@ class Curvilinear:
     if self.min_segments:
       segments=tuple([max(self.min_segments[d],s) for d,s in enumerate(segments)])
     return generate_mesh_volume(
-      self.posfn,
+      self.pos_fn,
       segments,
       closed=self.closed,
       degenerate=self.degenerate)
@@ -207,7 +207,7 @@ class Curvilinear:
   def tesselate_surface(self,density):
     segments=self.compute_density(density)
     return generate_mesh_surface(
-      self.posfn,
+      self.pos_fn,
       segments,
       closed=self.closed,
       degenerate=self.degenerate)

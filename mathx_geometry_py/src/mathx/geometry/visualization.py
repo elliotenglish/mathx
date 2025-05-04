@@ -25,6 +25,27 @@ def get_boundary_faces(tets):
 def color_str(color):
   return f"rgb({color[0]},{color[1]},{color[2]})"
 
+def generate_points3d(pts,color):
+  return go.Scatter3d(
+    x=[p[0] for p in pts],
+    y=[p[1] for p in pts],
+    z=[p[2] for p in pts],
+    marker_color=color_str(color),
+    mode="markers",
+    marker_size=3
+  )
+  
+def generate_vectors3d(pts,vecs,color):
+  return go.Cone(
+    x=[p[0] for p in pts],
+    y=[p[1] for p in pts],
+    z=[p[2] for p in pts],
+    u=[v[0] for v in vecs],
+    v=[v[1] for v in vecs],
+    w=[v[2] for v in vecs],
+    colorscale=[[0,color_str(color)]]
+  )
+
 def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
   if wireframe:
     edges=set()

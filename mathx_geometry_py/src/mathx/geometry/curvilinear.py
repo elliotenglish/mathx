@@ -1,5 +1,7 @@
 from . import hexagon
 import numpy as np
+import jax
+import jax.numpy as jnp
 
 def remove_degenerate(idx_arr):
   return [ix for ix in idx_arr if len(set(ix))==len(ix)]
@@ -137,6 +139,28 @@ def generate_mesh_surface(posfn,segments,closed=(False,False,False),degenerate=N
             [(el[0],el[1],el[2]),
              (el[2],el[1],el[3])]))
   return vtx,elem
+
+def surface_normal_transform(pos_fn):
+  """
+  Transform a surface function f(x,y) into a function that returns the normal:
+  \vec{xs}=posfn(u,v)
+
+  du=\frac{\partial\vec{xs}}{u}
+  dv=\frac{\partial\vec{xs}}{u}
+  \vec{n}=\frac{d0\times d1}{|d0||d1|}
+  
+  """
+  pos_jac_fn=jax.jacrev(pos_fn)
+  def fn(u):
+    x=pos_fn(u)
+    dx=pos_jac_fn(u)
+    print(dx)
+    du=dx[:,0]
+    dv=dx[:,1]
+    n=jnp.cross(du,dv)
+    n=n/jnp.linalg.norm(n)
+    return n
+  return fn
 
 class Curvilinear:
   D: int = 3

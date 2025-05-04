@@ -5,7 +5,6 @@ import jax
 import random
 # import math
 import numpy as np
-import fiblat
 
 class QuadraticSystem(cls.System):
   """
@@ -15,6 +14,7 @@ class QuadraticSystem(cls.System):
   """
 
   def __init__(self,dimensions,discrete_action):
+    import fiblat
     self.dimensions=dimensions
     if self.dimensions>=2:
       self.num_angles=5**self.dimensions

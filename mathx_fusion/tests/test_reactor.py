@@ -1,8 +1,8 @@
-import mathx.fusion as fusion
+import mathx.fusion.reactor as freact
 import mathx.geometry.visualization as viz
 
 def test_reactor():
-  reactor=fusion.Reactor(params=fusion.ReactorParams())
+  reactor=freact.Reactor(params=fusion.ReactorParams())
 
   vtx,tri_idx=reactor.generate()
   

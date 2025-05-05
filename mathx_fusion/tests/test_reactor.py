@@ -2,7 +2,7 @@ import mathx.fusion.reactor as freact
 import mathx.geometry.visualization as viz
 
 def test_reactor():
-  reactor=freact.Reactor(params=fusion.ReactorParams())
+  reactor=freact.Reactor(params=freact.ReactorParameters())
 
   vtx,tri_idx=reactor.generate()
   
@@ -12,3 +12,6 @@ def test_reactor():
     ],
     "reactor.html"
   )
+
+if __name__=="__main__":
+  test_reactor()

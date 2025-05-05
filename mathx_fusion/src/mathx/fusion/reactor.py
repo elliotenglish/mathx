@@ -4,8 +4,9 @@ import math
 
 from mathx.geometry.torus import Torus
 from mathx.geometry.cylinder import Cylinder
+from mathx.geometry import curvilinear
 from mathx.fusion import plasma
-from .magnet import Magnet
+# from .magnet import Magnet
 
 from dataclasses import dataclass
 import jax
@@ -13,32 +14,32 @@ import jax.numpy as jnp
 
 @dataclass
 class ReactorParameters:
-  primary_chamber: Torus.Parameters
-  magnets: list[Magnet.Parameters]
+  pass
+  # primary_chamber: Torus.Parameters
+  # magnets: list[Magnet.Parameters]
   # heating_ports: list[Port.Parameters]
   # diagnostic_ports: list[Port.Parameters]
   # diverter_ports: list[Port.Parameters]
 
 
 class Reactor:
-  def __init__(self):
-    self.plasma_equilibrium=plasma.get_test_equilibrium()
-    self.primary_chamber=Torus(major_radius=1,minor_radius_inner=0,minor_radius_outer=0.2)
+  # def __init__(self):
+  #   self.plasma_equilibrium=plasma.get_test_equilibrium()
 
   def surface_fn(self,u):
-    return self.primary_chamber.pos_fn(jnp.concatenate([u,[1]]))
+    return self.primary_chamber.pos_fn(jnp.concatenate([u,np.array([1])]))
   
   def structure_fn(self,u):
-    norm_fn=curv.surface_normal_transform(self.surface_fn)
-    x=surface_fn(u[:2])
+    norm_fn=curvilinear.surface_normal_transform(self.surface_fn)
+    x=self.surface_fn(u[:2])
     n=norm_fn(u[:2])
     return x+n*u[2]
 
-class Reactor:
   def __init__(self, params: ReactorParameters):
-    self.plasma_chamber=Torus(params.plasma_chamber)
+    # self.plasma_chamber=Torus(params.plasma_chamber)
+    self.primary_chamber=Torus(major_radius=1,minor_radius_inner=0,minor_radius_outer=0.2)
     self.wall_thickness=.05
-    self.wall=curv.Curvilinear(
+    self.wall=curvilinear.Curvilinear(
       lambda u: self.structure_fn(jnp.array([u[0],u[1],u[2]*self.wall_thickness])),
       closed=(True,True,False),
       min_segments=(4,4,1))

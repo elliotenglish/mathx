@@ -11,6 +11,7 @@ from mathx.fusion import plasma
 from dataclasses import dataclass
 import jax
 import jax.numpy as jnp
+import functools
 
 @dataclass
 class ReactorParameters:
@@ -29,11 +30,12 @@ class Reactor:
   def surface_fn(self,u):
     return self.primary_chamber.pos_fn(jnp.concatenate([u,np.array([1])]))
   
+  @functools.partial(jax.jit,static_argnums=(0,))
   def structure_fn(self,u):
     norm_fn=curvilinear.surface_normal_transform(self.surface_fn)
     x=self.surface_fn(u[:2])
     n=norm_fn(u[:2])
-    return x+n*u[2]
+    return x+n*(u[2]+jnp.sin(u[0]*8*jnp.pi)*.1)
 
   def __init__(self, params: ReactorParameters):
     # self.plasma_chamber=Torus(params.plasma_chamber)
@@ -43,7 +45,7 @@ class Reactor:
       lambda u: self.structure_fn(jnp.array([u[0],u[1],u[2]*self.wall_thickness])),
       closed=(True,True,False),
       min_segments=(4,4,1))
-    self.density=16
+    self.density=32
 
   def generate(self):
     return self.wall.tesselate_surface(self.density)

@@ -1,5 +1,6 @@
 import numpy as np
-import math
+import jax.numpy as jnp
+# import math
 from dataclasses import dataclass
 
 from .curvilinear import Curvilinear
@@ -16,10 +17,10 @@ def toroid_to_xyz(R,r_inner,r_outer,rho,theta,phi):
   """
 
   r_=r_inner+rho*(r_outer-r_inner)
-  rl=R+r_*math.cos(theta)
-  z=r_*math.sin(theta)
-  x=rl*math.cos(phi)
-  y=rl*math.sin(phi)
+  rl=R+r_*jnp.cos(theta)
+  z=r_*jnp.sin(theta)
+  x=rl*jnp.cos(phi)
+  y=rl*jnp.sin(phi)
 
   return x,y,z
 
@@ -32,13 +33,13 @@ class Parameters:
 def Torus(params: Parameters = None, **kwargs):
   if params is None:
     params=Parameters(**kwargs)
-  return Curvilinear(lambda u:np.array(
+  return Curvilinear(lambda u:jnp.array(
     toroid_to_xyz(params.major_radius,
                   params.minor_radius_inner,
                   params.minor_radius_outer,
                   u[2],
-                  u[1]*2*math.pi,
-                  u[0]*2*math.pi)),
+                  u[1]*2*jnp.pi,
+                  u[0]*2*jnp.pi)),
       closed=(True,True,False),
       min_segments=(4,4,1),
       degenerate=(None,None,((False,True if params.minor_radius_inner==0 else False),None)))

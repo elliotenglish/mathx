@@ -154,7 +154,7 @@ def surface_normal_transform(pos_fn):
   def fn(u):
     x=pos_fn(u)
     dx=pos_jac_fn(u)
-    print(dx)
+    # print(dx)
     du=dx[:,0]
     dv=dx[:,1]
     n=jnp.cross(du,dv)

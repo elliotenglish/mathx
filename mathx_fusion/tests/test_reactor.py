@@ -8,7 +8,8 @@ def test_reactor():
   
   viz.write_visualization(
     [
-      viz.generate_mesh3d(vtx,tri_idx,color=[255,0,0],wireframe=True)
+      viz.generate_mesh3d(vtx,tri_idx,color=[0,0,255],wireframe=False),
+      viz.generate_mesh3d(vtx,tri_idx,color=[0,255,0],wireframe=True)
     ],
     "reactor.html"
   )

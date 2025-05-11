@@ -64,7 +64,8 @@ def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
       y=y,
       z=z,
       mode="lines+markers",
-      marker_size=3
+      marker_size=3,
+      marker=dict(color=color_str(color))
     )
     
   else:

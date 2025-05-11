@@ -24,12 +24,12 @@ class ReactorParameters:
 
 
 class Reactor:
-  # def __init__(self):
-  #   self.plasma_equilibrium=plasma.get_test_equilibrium()
+  def __init__(self):
+    self.plasma_equilibrium=plasma.get_test_equilibrium()
 
   def surface_fn(self,u):
     return self.primary_chamber.pos_fn(jnp.concatenate([u,np.array([1])]))
-  
+
   @functools.partial(jax.jit,static_argnums=(0,))
   def structure_fn(self,u):
     norm_fn=curvilinear.surface_normal_transform(self.surface_fn)
@@ -49,7 +49,7 @@ class Reactor:
 
   def generate(self):
     return self.wall.tesselate_surface(self.density)
-    
+
     #1 Define plasma chamber using surface_fn
     #2 Define magnets as grid on offset surface_fn
     #3 Define ports using surface_fn

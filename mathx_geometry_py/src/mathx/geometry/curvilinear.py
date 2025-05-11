@@ -140,7 +140,7 @@ def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=
              (el[2],el[1],el[3])]))
   return vtx,elem
 
-def surface_normal_transform(pos_fn):
+def surface_basis_transform(pos_fn):
   """
   Transform a surface function f(x,y) into a function that returns the normal:
   \vec{xs}=pos_fn(u,v)
@@ -155,6 +155,30 @@ def surface_normal_transform(pos_fn):
     x=pos_fn(u)
     dx=pos_jac_fn(u)
     # print(dx)
+    du=dx[:,0]
+    dv=dx[:,1]
+    n=jnp.cross(du,dv)
+    n=n/jnp.linalg.norm(n)
+    return n
+  return fn
+    
+def contravariant_basis_transform(pos_fn):
+  pos_jac_fn=jax.jacrev(pos_fn)
+  return pos_jac_fn
+
+def surface_normal_transform(pos_fn):
+  """
+  Transform a surface function f(x,y) into a function that returns the normal:
+  \vec{xs}=pos_fn(u,v)
+
+  du=\frac{\partial\vec{xs}}{u}
+  dv=\frac{\partial\vec{xs}}{u}
+  \vec{n}=\frac{d0\times d1}{|d0||d1|}
+  
+  """
+  dx_fn=contravariant_basis_transform(pos_fn)
+  def fn(x):
+    dx=dx_fn(x)
     du=dx[:,0]
     dv=dx[:,1]
     n=jnp.cross(du,dv)

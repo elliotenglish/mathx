@@ -23,27 +23,7 @@ def generate():
 
   eq=desc.io.load(eq_path)
 
-  class Grid:
-    """
-    Node coordinates are in rho-phi-zeta coordinates.
-    rho is radial, phi is the major axis angle, zeta is the minor axis angle
-    The grid is is zeta, rho, phi layout (slow to fast)
-    """
 
-    def __init__(self,L,M,N,NFP):
-      # DESC only generates a single field period, so need to use NFP to get the values for the entire torus
-      self._grid=LinearGrid(L=L,M=M,N=N,NFP=1,sym=False,axis=True)
-
-    def shape(self):
-      return [self._grid.L*2,self._grid.M*2+1,self._grid.N*2+1]
-
-    def linear_index(self,idx):
-      shape=self.shape()
-      lidx=int(np.sum(np.array([shape[1],1,shape[1]*shape[0]])*np.array(idx)))
-      return lidx
-
-    def desc(self):
-      return self._grid
 
   grid = Grid(L=1,M=32,N=32,NFP=eq.NFP)
   xyz=eq.compute(["X","Y","Z"],grid=grid.desc())

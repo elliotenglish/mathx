@@ -5,7 +5,7 @@ import math
 from mathx.geometry.torus import Torus
 from mathx.geometry.cylinder import Cylinder
 from mathx.geometry import curvilinear
-from mathx.fusion import plasma
+from mathx.fusion import equilibrium
 # from .magnet import Magnet
 
 from dataclasses import dataclass
@@ -24,9 +24,6 @@ class ReactorParameters:
 
 
 class Reactor:
-  def __init__(self):
-    self.plasma_equilibrium=plasma.get_test_equilibrium()
-
   def surface_fn(self,u):
     return self.primary_chamber.pos_fn(jnp.concatenate([u,np.array([1])]))
 
@@ -38,6 +35,8 @@ class Reactor:
     return x+n*(u[2]+jnp.sin(u[0]*8*jnp.pi)*.1)
 
   def __init__(self, params: ReactorParameters):
+    self.plasma_equilibrium=equilibrium.get_test_equilibrium()
+
     # self.plasma_chamber=Torus(params.plasma_chamber)
     self.primary_chamber=Torus(major_radius=1,minor_radius_inner=0,minor_radius_outer=0.2)
     self.wall_thickness=.05
@@ -48,7 +47,10 @@ class Reactor:
     self.density=32
 
   def generate(self):
-    return self.wall.tesselate_surface(self.density)
+    return (
+        [self.wall.tesselate_surface(self.density)]
+      # + [m.tesselate_surface(self.density) for m in self.magnets]
+    )
 
     #1 Define plasma chamber using surface_fn
     #2 Define magnets as grid on offset surface_fn

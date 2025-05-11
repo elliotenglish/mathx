@@ -30,3 +30,5 @@ def info(*args):
 
 def record(**kwargs):
   info(" ".join([f"{k}={v}" for k,v in kwargs.items()]))
+
+initialize()

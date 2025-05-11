@@ -7,7 +7,7 @@ import math
 import os
 import desc.io
 import numpy as np
-import scipy
+import jax.numpy as jnp
 
 from mathx.core import log
 
@@ -77,3 +77,49 @@ class Grid:
 
   def desc(self):
     return self._grid
+
+def get_xyz(eq,u):
+  """
+  params:
+    pts:
+      [num_pts,3] where the points are arranged as (phi,theta,rho)
+      desc takes points in (rho,theta,zeta) (where phi=zeta) so we have to reverse the order of the points.
+  """
+
+  # pts_desc=pts
+  # if len(pts.shape)==1
+  #   pts_desc=pts_desc[None]
+  # pts_desc=jnp.flip(pts,axis=-1)
+  # pts=jnp.array([u])
+
+  # grid = Grid(L=1,M=32,N=32,NFP=eq.NFP)
+  # xyz=eq.compute(["X","Y","Z"],grid=grid.desc())
+
+  rtz=u[:,::-1]*jnp.array([[1,2*jnp.pi,2*jnp.pi]])
+  grid=desc.grid.Grid(nodes=rtz)
+  xyz_split=eq.compute(["X","Y","Z"],grid=grid)  
+  xyz=jnp.concatenate([xyz_split["X"][:,None],
+                       xyz_split["Y"][:,None],
+                       xyz_split["Z"][:,None]],axis=1)
+  # print(rtz)
+  # print(xyz)
+  return xyz
+
+  # def remap_desc(grid,field):
+  #   shape=grid.shape()
+  #   arr=np.ndarray(shape)
+  #   for k in range(shape[2]):
+  #     for i in range(shape[0]):
+  #       for j in range(shape[1]):
+  #         idx0=grid.linear_index([i,j,k])
+  #         arr[i,j,k]=field[idx0]
+  #   return arr
+
+  # grid_xyz=np.concat([remap_desc(grid,[xyz_split["X"])[...,None],
+  #                     remap_desc(grid,xyz_split["Y"])[...,None],
+  #                     remap_desc(grid,xyz_split["Z"])[...,None]],
+  #                    axis=-1)
+  # print(grid_xyz)
+  # print(grid_xyz.shape)
+  
+  # return grid_xyz

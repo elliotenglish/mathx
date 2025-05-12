@@ -6,6 +6,7 @@ from mathx.geometry.torus import Torus
 from mathx.geometry.cylinder import Cylinder
 from mathx.geometry import curvilinear
 from mathx.fusion import equilibrium
+from mathx.core import log
 # from .magnet import Magnet
 
 from dataclasses import dataclass
@@ -34,32 +35,40 @@ class Reactor:
     n=norm_fn(u[:2])
     return x+n*(u[2]+jnp.sin(u[0]*8*jnp.pi)*.1)
 
+  @functools.partial(jax.jit,static_argnums=(0,))
   def structure_fn_plasma(self,u):
     def structure_fn_plasma_callback(u):
       # print(u)
       us=u[None,:] if len(u.shape)==1 else u
-      xs=return equilibrium.get_xyz(self.plasma_equilibrium,us)
+      us=us+jnp.array([[0,0,1]])
+      log.info(f"computing vertices num={us.shape[0]}")
+      xs=equilibrium.get_xyz(self.plasma_equilibrium,us)
+      log.info(f"computed")
       return xs[0] if len(u.shape)==1 else xs
-    return jax.pure_callback(structure_fn_plasma_callback,
-                             jax.ShapeDtypeStruct(u.shape,u.dtype),
-                             u)
+    x=jax.pure_callback(structure_fn_plasma_callback,
+                        jax.ShapeDtypeStruct(u.shape,u.dtype),
+                        u,
+                        vmap_method="expand_dims")
+    return x
 
   def __init__(self, params: ReactorParameters):
     self.plasma_equilibrium=equilibrium.get_test_equilibrium()
 
     us0=jnp.array([[0,0,0]],dtype=jnp.float64)
     us1=jnp.array([[0,0,0],[.5,0,0]],dtype=jnp.float64)
-    print("direct",equilibrium.get_xyz(self.plasma_equilibrium,us0))
-    print("direct batched",equilibrium.get_xyz(self.plasma_equilibrium,us1))
+    log.info(f"direct {equilibrium.get_xyz(self.plasma_equilibrium,us0)}")
+    log.info(f"direct batched {equilibrium.get_xyz(self.plasma_equilibrium,us1)}")
 
-    print("indirect",self.structure_fn_plasma(us0[0]))
-    print("indirect batched",jax.jax.vmap(self.structure_fn_plasma,in_axes=(0),out_axes=(0))(us1))
-    
-    print("jit",jax.jit(self.structure_fn_plasma)(us0[0]))
-    print("jit batched",jax.jit(jax.vmap(self.structure_fn_plasma,in_axes=(0),out_axes=(0)))(us1))
+    log.info(f"indirect {self.structure_fn_plasma(us0[0])}")
+    log.info(f"indirect batched {jax.jax.vmap(self.structure_fn_plasma,in_axes=(0),out_axes=(0))(us1)}")
 
-    import sys
-    sys.exit(0)
+    log.info(f"jit {jax.jit(self.structure_fn_plasma)(us0[0])}")
+    log.info(f"jit batched {jax.jit(jax.vmap(self.structure_fn_plasma,in_axes=(0),out_axes=(0)))(us1)}")
+
+    # import sys
+    # sys.exit(0)
+
+    log.info("creating components")
 
     # self.plasma_chamber=Torus(params.plasma_chamber)
     self.primary_chamber=Torus(major_radius=1,minor_radius_inner=0,minor_radius_outer=0.2)
@@ -68,11 +77,13 @@ class Reactor:
       lambda u: self.structure_fn_plasma(jnp.array([u[0],u[1],u[2]*self.wall_thickness])),
       closed=(True,True,False),
       min_segments=(4,4,1))
-    self.density=32
+    self.density=128
 
   def generate(self):
+    log.info("meshing")
+
     return (
-        [self.wall.tesselate_surface(self.density)]
+      [self.wall.tesselate_surface(self.density)]
       # + [m.tesselate_surface(self.density) for m in self.magnets]
     )
 

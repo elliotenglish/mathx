@@ -1,4 +1,5 @@
 from . import hexagon
+from mathx.core import log
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -102,12 +103,13 @@ def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=
 
   vshape=tuple([n+1 if closed[i]==False else n for i,n in enumerate(segments)])
 
-  vtx=[]
+  vtx_u=[]
   vtxm={} #array index to linear idx
   elem=[]
 
   D=3
 
+  log.info("generating topology")
   for d in range(D):
     for e in range(2):
       if not closed[d]:
@@ -124,8 +126,8 @@ def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=
             if idx not in vtxm:
               uvw=np.array(real_idx,dtype=np.float32)/np.array(sshape)
               # print(real_idx,sshape,uvw)
-              vtxm[idx]=len(vtx)
-              vtx.append(pos_fn(uvw))
+              vtxm[idx]=len(vtx_u)
+              vtx_u.append(uvw)
             vi=vtxm[real_idx]
             el.append(vi)
           #TODO: if e==1, reverse element vertex order
@@ -138,6 +140,18 @@ def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=
           elem.extend(remove_degenerate(
             [(el[0],el[1],el[2]),
              (el[2],el[1],el[3])]))
+
+  vtx_u=jnp.array(vtx_u)
+  log.info(f"generating vertices shape={vtx_u.shape}")
+  def vtx_fn(uvw):
+    print(uvw)
+    return pos_fn(uvw)
+  vtx=jax.jit(jax.vmap(vtx_fn,in_axes=(0),out_axes=(0)))(vtx_u)
+  log.info(f"generated vertices shape={vtx.shape} vtx[0]={vtx[0]}")
+  # log.info(f"vtx={vtx}")
+  vtx=[v for v in vtx]
+  print(vtx)
+
   return vtx,elem
 
 def surface_basis_transform(pos_fn):
@@ -210,11 +224,11 @@ class Curvilinear:
         x0=self.pos_fn(p)
         p[d]=float(i+1)/num_steps
         x1=self.pos_fn(p)
-        dx=np.linalg.norm(x1-x0)
+        dx=jnp.linalg.norm(x1-x0)
         # print(x0,x1,dx)
         l+=dx
       ls[d]=l
-    segments=tuple(np.ceil(num*ls/np.max(ls)).astype(int).tolist())
+    segments=tuple(jnp.ceil(num*ls/np.max(ls)).astype(int).tolist())
     # print(f"{ls=} {segments=} {num=}")
     return segments
 

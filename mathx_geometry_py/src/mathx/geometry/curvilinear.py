@@ -142,15 +142,10 @@ def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=
              (el[2],el[1],el[3])]))
 
   vtx_u=jnp.array(vtx_u)
-  log.info(f"generating vertices shape={vtx_u.shape}")
-  def vtx_fn(uvw):
-    print(uvw)
-    return pos_fn(uvw)
-  vtx=jax.jit(jax.vmap(vtx_fn,in_axes=(0),out_axes=(0)))(vtx_u)
-  log.info(f"generated vertices shape={vtx.shape} vtx[0]={vtx[0]}")
-  # log.info(f"vtx={vtx}")
+  vtx=jax.jit(jax.vmap(pos_fn,in_axes=(0),out_axes=(0)))(vtx_u)
+
+  #Convert back to array
   vtx=[v for v in vtx]
-  print(vtx)
 
   return vtx,elem
 
@@ -212,6 +207,7 @@ class Curvilinear:
     self.closed=closed
     self.degenerate=degenerate
     self.min_segments=min_segments
+    self.batch_pos_fn=jax.jit(jax.vmap(self.pos_fn,in_axes=(0),out_axes=(0)))
 
   def compute_density(self,num):
     num_steps=16
@@ -219,13 +215,14 @@ class Curvilinear:
     for d in range(self.D):
       p=np.array([0.5]*self.D)
       l=0
+      
+      us=.5*jnp.ones([num_steps+1,2])
+      us=jnp.concatenate([us[:,:d],jnp.linspace(0,1,num_steps+1)[:,None],us[:,d:]],axis=1)
+      xs=self.batch_pos_fn(us)
+
+      #TODO: vectorize
       for i in range(num_steps):
-        p[d]=float(i)/num_steps
-        x0=self.pos_fn(p)
-        p[d]=float(i+1)/num_steps
-        x1=self.pos_fn(p)
-        dx=jnp.linalg.norm(x1-x0)
-        # print(x0,x1,dx)
+        dx=jnp.linalg.norm(xs[i+1]-xs[i])
         l+=dx
       ls[d]=l
     segments=tuple(jnp.ceil(num*ls/np.max(ls)).astype(int).tolist())

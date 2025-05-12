@@ -41,9 +41,9 @@ class Reactor:
       # print(u)
       us=u[None,:] if len(u.shape)==1 else u
       us=us+jnp.array([[0,0,1]])
-      log.info(f"computing vertices num={us.shape[0]}")
+      # log.info(f"computing vertices num={us.shape[0]}")
       xs=equilibrium.get_xyz(self.plasma_equilibrium,us)
-      log.info(f"computed")
+      # log.info(f"computed")
       return xs[0] if len(u.shape)==1 else xs
     x=jax.pure_callback(structure_fn_plasma_callback,
                         jax.ShapeDtypeStruct(u.shape,u.dtype),
@@ -54,16 +54,16 @@ class Reactor:
   def __init__(self, params: ReactorParameters):
     self.plasma_equilibrium=equilibrium.get_test_equilibrium()
 
-    us0=jnp.array([[0,0,0]],dtype=jnp.float64)
-    us1=jnp.array([[0,0,0],[.5,0,0]],dtype=jnp.float64)
-    log.info(f"direct {equilibrium.get_xyz(self.plasma_equilibrium,us0)}")
-    log.info(f"direct batched {equilibrium.get_xyz(self.plasma_equilibrium,us1)}")
+    # us0=jnp.array([[0,0,0]],dtype=jnp.float64)
+    # us1=jnp.array([[0,0,0],[.5,0,0]],dtype=jnp.float64)
+    # log.info(f"direct {equilibrium.get_xyz(self.plasma_equilibrium,us0)}")
+    # log.info(f"direct batched {equilibrium.get_xyz(self.plasma_equilibrium,us1)}")
 
-    log.info(f"indirect {self.structure_fn_plasma(us0[0])}")
-    log.info(f"indirect batched {jax.jax.vmap(self.structure_fn_plasma,in_axes=(0),out_axes=(0))(us1)}")
+    # log.info(f"indirect {self.structure_fn_plasma(us0[0])}")
+    # log.info(f"indirect batched {jax.jax.vmap(self.structure_fn_plasma,in_axes=(0),out_axes=(0))(us1)}")
 
-    log.info(f"jit {jax.jit(self.structure_fn_plasma)(us0[0])}")
-    log.info(f"jit batched {jax.jit(jax.vmap(self.structure_fn_plasma,in_axes=(0),out_axes=(0)))(us1)}")
+    # log.info(f"jit {jax.jit(self.structure_fn_plasma)(us0[0])}")
+    # log.info(f"jit batched {jax.jit(jax.vmap(self.structure_fn_plasma,in_axes=(0),out_axes=(0)))(us1)}")
 
     # import sys
     # sys.exit(0)
@@ -73,10 +73,12 @@ class Reactor:
     # self.plasma_chamber=Torus(params.plasma_chamber)
     self.primary_chamber=Torus(major_radius=1,minor_radius_inner=0,minor_radius_outer=0.2)
     self.wall_thickness=.05
+
     self.wall=curvilinear.Curvilinear(
       lambda u: self.structure_fn_plasma(jnp.array([u[0],u[1],u[2]*self.wall_thickness])),
       closed=(True,True,False),
       min_segments=(4,4,1))
+
     self.density=128
 
   def generate(self):

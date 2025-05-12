@@ -12,7 +12,7 @@ def test_reactor():
     log.info(f"component {i} vtx={len(c[0])} tri={len(c[1])}")
 
   path="reactor.html"
-  log.info(f"generate_visualization")
+  log.info(f"generating visualization")
   viz_els=[
     el
     for c in components
@@ -21,7 +21,6 @@ def test_reactor():
       viz.generate_mesh3d(c[0],c[1],color=[0,255,0],wireframe=True)
     ]
   ]
-  log.info(f"viz_els={viz_els}")
   log.info(f"writing visualization output={path}")
   viz.write_visualization(
     viz_els,

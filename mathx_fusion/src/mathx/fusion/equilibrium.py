@@ -78,7 +78,7 @@ class Grid:
   def desc(self):
     return self._grid
 
-def get_xyz(eq,u):
+def get_xyz_basis(eq,u):
   """
   params:
     pts:
@@ -97,13 +97,21 @@ def get_xyz(eq,u):
 
   rtz=u[:,::-1]*jnp.array([[1,2*jnp.pi,2*jnp.pi]])
   grid=desc.grid.Grid(nodes=rtz)
-  xyz_split=eq.compute(["X","Y","Z"],grid=grid)  
-  xyz=jnp.concatenate([xyz_split["X"][:,None],
-                       xyz_split["Y"][:,None],
-                       xyz_split["Z"][:,None]],axis=1)
+  r=eq.compute(["X","Y","Z",
+                "X_r","X_t","X_z",
+                "Y_r","Y_t","Y_z",
+                "Z_r","Z_t","Z_z"],grid=grid)  
+  xyz=jnp.concatenate([r["X"][:,None],
+                       r["Y"][:,None],
+                       r["Z"][:,None]],
+                       axis=1)
+  basis=jnp.concatenate([r["X_r"][:,None],r["X_t"][:,None],r["X_z"][:,None],
+                         r["Z_r"][:,None],r["Y_t"][:,None],r["Y_z"][:,None],
+                         r["Z_r"][:,None],r["Z_t"][:,None],r["Z_z"][:,None]],
+                         axis=1).reshape((-1,3,3))
   # print(rtz)
   # print(xyz)
-  return xyz
+  return xyz,basis
 
   # def remap_desc(grid,field):
   #   shape=grid.shape()

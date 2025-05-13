@@ -37,19 +37,26 @@ class Reactor:
 
   @functools.partial(jax.jit,static_argnums=(0,))
   def structure_fn_plasma(self,u):
+    # log.info(f"{u=} {u.shape}")
     def structure_fn_plasma_callback(u):
       # print(u)
+      # log.info(f"{u=}")
       us=u[None,:] if len(u.shape)==1 else u
+      # log.info(f"{us=}")
       us=us+jnp.array([[0,0,1]])
       # log.info(f"computing vertices num={us.shape[0]}")
-      xs=equilibrium.get_xyz(self.plasma_equilibrium,us)
+      xs,bs=equilibrium.get_xyz_basis(self.plasma_equilibrium,us)
       # log.info(f"computed")
-      return xs[0] if len(u.shape)==1 else xs
-    x=jax.pure_callback(structure_fn_plasma_callback,
-                        jax.ShapeDtypeStruct(u.shape,u.dtype),
-                        u,
-                        vmap_method="expand_dims")
-    return x
+      # log.info(f"{xs=}")
+      # log.info(f"{bs=}")
+      xs,bs=(xs[0],bs[0]) if len(u.shape)==1 else (xs,bs)
+      return xs,bs
+    x,b=jax.pure_callback(structure_fn_plasma_callback,
+                          (jax.ShapeDtypeStruct((3,),u.dtype),
+                           jax.ShapeDtypeStruct((3,3),u.dtype)),
+                          u,
+                          vmap_method="expand_dims")
+    return x,b
 
   def __init__(self, params: ReactorParameters):
     self.plasma_equilibrium=equilibrium.get_test_equilibrium()
@@ -75,7 +82,7 @@ class Reactor:
     self.wall_thickness=.05
 
     self.wall=curvilinear.Curvilinear(
-      lambda u: self.structure_fn_plasma(jnp.array([u[0],u[1],u[2]*self.wall_thickness])),
+      lambda u: self.structure_fn_plasma(jnp.array([u[0],u[1],u[2]*self.wall_thickness]))[0],
       closed=(True,True,False),
       min_segments=(4,4,1))
 

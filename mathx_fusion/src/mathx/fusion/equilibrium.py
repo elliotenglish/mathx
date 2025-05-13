@@ -106,7 +106,7 @@ def get_xyz_basis(eq,u):
                        r["Z"][:,None]],
                        axis=1)
   basis=jnp.concatenate([r["X_r"][:,None],r["X_t"][:,None],r["X_z"][:,None],
-                         r["Z_r"][:,None],r["Y_t"][:,None],r["Y_z"][:,None],
+                         r["Y_r"][:,None],r["Y_t"][:,None],r["Y_z"][:,None],
                          r["Z_r"][:,None],r["Z_t"][:,None],r["Z_z"][:,None]],
                          axis=1).reshape((-1,3,3))
   # print(rtz)

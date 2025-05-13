@@ -43,7 +43,6 @@ class Reactor:
       # log.info(f"{u=}")
       us=u[None,:] if len(u.shape)==1 else u
       # log.info(f"{us=}")
-      us=us+jnp.array([[0,0,1]])
       # log.info(f"computing vertices num={us.shape[0]}")
       xs,bs=equilibrium.get_xyz_basis(self.plasma_equilibrium,us)
       # log.info(f"computed")
@@ -51,11 +50,18 @@ class Reactor:
       # log.info(f"{bs=}")
       xs,bs=(xs[0],bs[0]) if len(u.shape)==1 else (xs,bs)
       return xs,bs
+
+    u=jnp.array([u[0],u[1],1])
+
     x,b=jax.pure_callback(structure_fn_plasma_callback,
                           (jax.ShapeDtypeStruct((3,),u.dtype),
                            jax.ShapeDtypeStruct((3,3),u.dtype)),
                           u,
                           vmap_method="expand_dims")
+    n=jnp.cross(b[:,0],b[:,1])
+    n=n/jnp.linalg.norm(n)
+    x=x+u[2]*n
+
     return x,b
 
   def __init__(self, params: ReactorParameters):
@@ -85,6 +91,8 @@ class Reactor:
       lambda u: self.structure_fn_plasma(jnp.array([u[0],u[1],u[2]*self.wall_thickness]))[0],
       closed=(True,True,False),
       min_segments=(4,4,1))
+
+    # self.magnets=
 
     self.density=128
 

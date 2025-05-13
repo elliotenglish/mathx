@@ -207,7 +207,7 @@ class Curvilinear:
     self.closed=closed
     self.degenerate=degenerate
     self.min_segments=min_segments
-    self.batch_pos_fn=(jax.vmap(self.pos_fn,in_axes=(0),out_axes=(0)))
+    self.batch_pos_fn=jax.jit(jax.vmap(self.pos_fn,in_axes=(0),out_axes=(0)))
 
   def compute_density(self,num):
     num_steps=16

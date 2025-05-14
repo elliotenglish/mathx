@@ -142,7 +142,9 @@ def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=
              (el[2],el[1],el[3])]))
 
   vtx_u=jnp.array(vtx_u)
-  vtx=jax.jit(jax.vmap(pos_fn,in_axes=(0),out_axes=(0)))(vtx_u)
+  batch_pos_fn=jax.vmap(pos_fn,in_axes=(0),out_axes=(0))
+  # batch_pos_fn=jax.jit(batch_pos_fn)
+  vtx=batch_pos_fn(vtx_u)
 
   #Convert back to array
   vtx=[v for v in vtx]
@@ -207,9 +209,12 @@ class Curvilinear:
     self.closed=closed
     self.degenerate=degenerate
     self.min_segments=min_segments
-    self.batch_pos_fn=jax.jit(jax.vmap(self.pos_fn,in_axes=(0),out_axes=(0)))
+    self.batch_pos_fn=jax.vmap(self.pos_fn,in_axes=(0),out_axes=(0))
+    # self.batch_pos_fn=jax.jit(self.batch_pos_fn)
 
   def compute_density(self,num):
+    log.info("compute_density")
+
     num_steps=16
     ls=np.array([0.]*self.D)
     for d in range(self.D):
@@ -226,8 +231,11 @@ class Curvilinear:
         dx=jnp.linalg.norm(xs[i+1]-xs[i])
         l+=dx
       ls[d]=l
-    segments=tuple(jnp.ceil(num*ls/np.max(ls)).astype(int).tolist())
-    # print(f"{ls=} {segments=} {num=}")
+    segments=tuple(jnp.maximum(1,jnp.round(num*ls/np.max(ls))).astype(int).tolist())
+    print(f"{ls=} {segments=} {num=}")
+
+    log.info(f"{segments=}")
+
     return segments
 
   def tesselate_volume(self,density):

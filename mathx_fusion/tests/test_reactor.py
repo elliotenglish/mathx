@@ -2,6 +2,8 @@ import mathx.fusion.reactor as freact
 import mathx.geometry.visualization as viz
 from mathx.core import log
 
+import numpy as np
+
 def test_reactor():
   log.info("creating reactor")
   reactor=freact.Reactor(params=freact.ReactorParameters())
@@ -15,10 +17,10 @@ def test_reactor():
   log.info(f"generating visualization")
   viz_els=[
     el
-    for c in components
+    for idx,c in enumerate(components)
     for el in [
-      viz.generate_mesh3d(c[0],c[1],color=[0,0,255],wireframe=False),
-      viz.generate_mesh3d(c[0],c[1],color=[0,255,0],wireframe=True)
+      viz.generate_mesh3d(c[0],c[1],color=[0,0,255] if idx==0 else [255,0,0],wireframe=False),
+      # viz.generate_mesh3d(c[0],c[1],color=[0,255,0],wireframe=True)
     ]
   ]
   log.info(f"writing visualization output={path}")

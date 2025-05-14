@@ -10,6 +10,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from mathx.core import log
+from dataclasses import dataclass
 
 def generate_test_equilibrium():
   log.info("Computing equilibrium")  
@@ -56,27 +57,35 @@ def get_test_equilibrium(path="equilibrium.h5"):
   
   return eq
 
-class Grid:
-  """
-  Node coordinates are in rho-phi-zeta coordinates.
-  rho is radial, phi is the major axis angle, zeta is the minor axis angle
-  The grid is is zeta, rho, phi layout (slow to fast)
-  """
+# class Grid:
+#   """
+#   Node coordinates are in rho-phi-zeta coordinates.
+#   rho is radial, phi is the major axis angle, zeta is the minor axis angle
+#   The grid is is zeta, rho, phi layout (slow to fast)
+#   """
 
-  def __init__(self,L,M,N,NFP):
-    # DESC only generates a single field period, so need to use NFP to get the values for the entire torus
-    self._grid=LinearGrid(L=L,M=M,N=N,NFP=1,sym=False,axis=True)
+#   def __init__(self,L,M,N,NFP):
+#     # DESC only generates a single field period, so need to use NFP to get the values for the entire torus
+#     self._grid=LinearGrid(L=L,M=M,N=N,NFP=1,sym=False,axis=True)
 
-  def shape(self):
-    return [self._grid.L*2,self._grid.M*2+1,self._grid.N*2+1]
+#   def shape(self):
+#     return [self._grid.L*2,self._grid.M*2+1,self._grid.N*2+1]
 
-  def linear_index(self,idx):
-    shape=self.shape()
-    lidx=int(np.sum(np.array([shape[1],1,shape[1]*shape[0]])*np.array(idx)))
-    return lidx
+#   def linear_index(self,idx):
+#     shape=self.shape()
+#     lidx=int(np.sum(np.array([shape[1],1,shape[1]*shape[0]])*np.array(idx)))
+#     return lidx
 
-  def desc(self):
-    return self._grid
+#   def desc(self):
+#     return self._grid
+
+@dataclass
+class DESCGrid:
+  nodes: jnp.ndarray
+    
+  @property
+  def num_nodes(self):
+    return self.nodes.shape[0]
 
 def get_xyz_basis(eq,u):
   """
@@ -95,12 +104,18 @@ def get_xyz_basis(eq,u):
   # grid = Grid(L=1,M=32,N=32,NFP=eq.NFP)
   # xyz=eq.compute(["X","Y","Z"],grid=grid.desc())
 
+  # log.info("blah")
   rtz=u[:,::-1]*jnp.array([[1,2*jnp.pi,2*jnp.pi]])
+  # log.info(f"asdffdas {rtz=}")
+  # import pdb
+  # pdb.set_trace()
   grid=desc.grid.Grid(nodes=rtz)
+  # grid=DESCGrid(nodes=rtz)
+  # log.info(f"compute {rtz=}")
   r=eq.compute(["X","Y","Z",
                 "X_r","X_t","X_z",
                 "Y_r","Y_t","Y_z",
-                "Z_r","Z_t","Z_z"],grid=grid)  
+                "Z_r","Z_t","Z_z"],grid=grid)
   xyz=jnp.concatenate([r["X"][:,None],
                        r["Y"][:,None],
                        r["Z"][:,None]],

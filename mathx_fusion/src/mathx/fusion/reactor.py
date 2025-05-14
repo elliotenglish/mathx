@@ -14,6 +14,28 @@ import jax
 import jax.numpy as jnp
 import functools
 
+def RingMagnet(structure_fn,phi,width,height):
+  def pos_fn(u):
+    x,b=structure_fn(jnp.array([phi,u[0],0]))
+    dphi=b[:,0]/jnp.linalg.norm(b[:,0])
+    dtheta=b[:,1]/jnp.linalg.norm(b[:,1])
+    # dtheta=b[:,1]-(b[:,1]@dphi.T)*dphi
+    # dtheta=dtheta/jnp.linalg.norm(dtheta)
+    norm=jnp.cross(dphi,dtheta)
+    norm=norm/jnp.linalg.norm(norm)
+    return x+dphi*width*(u[1]-.5)+norm*height*u[2]
+
+  return curvilinear.Curvilinear(
+    pos_fn,
+    closed=(True,False,False),
+    min_segments=(4,1,1))
+
+def PlasmaChamber(structure_fn,thickness):
+  return curvilinear.Curvilinear(
+      lambda u: structure_fn(jnp.array([u[0],u[1],u[2]*thickness]))[0],
+      closed=(True,True,False),
+      min_segments=(4,4,1))
+
 @dataclass
 class ReactorParameters:
   pass
@@ -39,15 +61,15 @@ class Reactor:
   def structure_fn_plasma(self,u):
     # log.info(f"{u=} {u.shape}")
     def structure_fn_plasma_callback(u):
-      # print(u)
-      # log.info(f"{u=}")
       us=u[None,:] if len(u.shape)==1 else u
+      # log.info(f"{us.shape=}")
       # log.info(f"{us=}")
       # log.info(f"computing vertices num={us.shape[0]}")
       xs,bs=equilibrium.get_xyz_basis(self.plasma_equilibrium,us)
       # log.info(f"computed")
       # log.info(f"{xs=}")
       # log.info(f"{bs=}")
+      # log.info(f"{xs.shape=} {bs.shape=}")
       xs,bs=(xs[0],bs[0]) if len(u.shape)==1 else (xs,bs)
       return xs,bs
 
@@ -84,15 +106,15 @@ class Reactor:
     log.info("creating components")
 
     # self.plasma_chamber=Torus(params.plasma_chamber)
-    self.primary_chamber=Torus(major_radius=1,minor_radius_inner=0,minor_radius_outer=0.2)
-    self.wall_thickness=.05
+    self.wall_thickness=.2
+    self.plasma_chamber=PlasmaChamber(self.structure_fn_plasma,self.wall_thickness)
 
-    self.wall=curvilinear.Curvilinear(
-      lambda u: self.structure_fn_plasma(jnp.array([u[0],u[1],u[2]*self.wall_thickness]))[0],
-      closed=(True,True,False),
-      min_segments=(4,4,1))
-
-    # self.magnets=
+    magnet_phi=jnp.linspace(0,1,32,endpoint=False)
+    log.info(f"{magnet_phi=}")
+    self.magnets=[
+      RingMagnet(self.structure_fn_plasma,phi,.1,.1)
+      for phi in magnet_phi
+    ]
 
     self.density=128
 
@@ -100,8 +122,8 @@ class Reactor:
     log.info("meshing")
 
     return (
-      [self.wall.tesselate_surface(self.density)]
-      # + [m.tesselate_surface(self.density) for m in self.magnets]
+      [self.plasma_chamber.tesselate_surface(self.density)] +
+      [m.tesselate_surface(self.density) for m in self.magnets]
     )
 
     #1 Define plasma chamber using surface_fn

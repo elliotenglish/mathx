@@ -14,6 +14,12 @@ import jax
 import jax.numpy as jnp
 import functools
 
+def PlasmaChamber(structure_fn,thickness):
+  return curvilinear.Curvilinear(
+      lambda u: structure_fn(jnp.array([u[0],u[1],u[2]*thickness]))[0],
+      closed=(True,True,False),
+      min_segments=(4,4,1))
+
 def RingMagnet(structure_fn,phi,width,height):
   def pos_fn(u):
     x,b=structure_fn(jnp.array([phi,u[0],0]))
@@ -29,29 +35,25 @@ def RingMagnet(structure_fn,phi,width,height):
     pos_fn,
     closed=(True,False,False),
     min_segments=(4,1,1))
-
-def PlasmaChamber(structure_fn,thickness):
-  return curvilinear.Curvilinear(
-      lambda u: structure_fn(jnp.array([u[0],u[1],u[2]*thickness]))[0],
-      closed=(True,True,False),
-      min_segments=(4,4,1))
+  
+def Support(structure_fn,u,ground_level):
+  return None
 
 @dataclass
 class ReactorParameters:
-  pass
+  wall_thickness: float = .2
+  magnet_width: float =.2
+  magnet_height: float = .2
+  num_supports: int = 10
   # primary_chamber: Torus.Parameters
   # magnets: list[Magnet.Parameters]
   # heating_ports: list[Port.Parameters]
   # diagnostic_ports: list[Port.Parameters]
   # diverter_ports: list[Port.Parameters]
 
-
 class Reactor:
-  def surface_fn(self,u):
-    return self.primary_chamber.pos_fn(jnp.concatenate([u,np.array([1])]))
-
   @functools.partial(jax.jit,static_argnums=(0,))
-  def structure_fn(self,u):
+  def structure_fn_torus(self,u):
     norm_fn=curvilinear.surface_normal_transform(self.surface_fn)
     x=self.surface_fn(u[:2])
     n=norm_fn(u[:2])
@@ -62,14 +64,7 @@ class Reactor:
     # log.info(f"{u=} {u.shape}")
     def structure_fn_plasma_callback(u):
       us=u[None,:] if len(u.shape)==1 else u
-      # log.info(f"{us.shape=}")
-      # log.info(f"{us=}")
-      # log.info(f"computing vertices num={us.shape[0]}")
       xs,bs=equilibrium.get_xyz_basis(self.plasma_equilibrium,us)
-      # log.info(f"computed")
-      # log.info(f"{xs=}")
-      # log.info(f"{bs=}")
-      # log.info(f"{xs.shape=} {bs.shape=}")
       xs,bs=(xs[0],bs[0]) if len(u.shape)==1 else (xs,bs)
       return xs,bs
 
@@ -88,6 +83,8 @@ class Reactor:
 
   def __init__(self, params: ReactorParameters):
     self.plasma_equilibrium=equilibrium.get_test_equilibrium()
+    
+    self.structure_fn=self.structure_fn_plasma
 
     # us0=jnp.array([[0,0,0]],dtype=jnp.float64)
     # us1=jnp.array([[0,0,0],[.5,0,0]],dtype=jnp.float64)
@@ -105,17 +102,35 @@ class Reactor:
 
     log.info("creating components")
 
+    ###################################
+    # Plasma chamber
     # self.plasma_chamber=Torus(params.plasma_chamber)
     self.wall_thickness=.2
-    self.plasma_chamber=PlasmaChamber(self.structure_fn_plasma,self.wall_thickness)
+    self.plasma_chamber=PlasmaChamber(self.structure_fn,params.wall_thickness)
 
+    ###################################
+    # Magnets
     magnet_phi=jnp.linspace(0,1,32,endpoint=False)
     log.info(f"{magnet_phi=}")
     self.magnets=[
-      RingMagnet(self.structure_fn_plasma,phi,.1,.1)
+      RingMagnet(self.structure_fn,phi,.1,.1)
       for phi in magnet_phi
     ]
 
+    ###################################
+    # Supports
+    num_supports=10
+    self.supports=[]
+    while len(self.supports)<num_supports:
+      u=np.concatenate([np.random.uniform(low=0,high=1,size=[2]),1])
+      x,b=self.structure_fn(u)
+      n=np.cross(b[:,0],b[:,1])
+      n=n/np.linalg.norm(n)
+      if n[2]<-.1:
+        self.aupports.Append(Support(self.structure_fn,u,-3))
+
+    ###################################
+    # Meshing
     self.density=128
 
   def generate(self):

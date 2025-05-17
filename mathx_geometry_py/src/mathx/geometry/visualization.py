@@ -87,7 +87,10 @@ def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
         # name='plasma_surface',
         lighting_specular=1.5,
         color=color_str(color),
-        flatshading=flatshading
+        flatshading=flatshading,
+        # Workaround bug in normals/shading (https://community.plotly.com/t/mesh3d-shading-bug/92247/10)
+        lighting=dict(vertexnormalsepsilon=0,
+                      facenormalsepsilon=0)
         # showscale=True
       )
   

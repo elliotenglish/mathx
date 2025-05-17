@@ -35,7 +35,7 @@ def test_reactor():
     for idx,c in enumerate(components)
     for el in [
       viz.generate_mesh3d(c[0],c[1],color=rand.uniform(low=0,high=255,size=(3)),wireframe=False),
-      viz.generate_mesh3d(c[0],c[1],color=[0,255,0],wireframe=True)
+      # viz.generate_mesh3d(c[0],c[1],color=[0,255,0],wireframe=True)
     ]
   ]
   log.info(f"writing visualization output={path}")

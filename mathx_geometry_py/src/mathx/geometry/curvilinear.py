@@ -159,7 +159,7 @@ def surface_basis_transform(pos_fn):
   du=\frac{\partial\vec{xs}}{u}
   dv=\frac{\partial\vec{xs}}{u}
   \vec{n}=\frac{d0\times d1}{|d0||d1|}
-  
+
   """
   pos_jac_fn=jax.jacrev(pos_fn)
   def fn(u):
@@ -172,7 +172,7 @@ def surface_basis_transform(pos_fn):
     n=n/jnp.linalg.norm(n)
     return n
   return fn
-    
+
 def contravariant_basis_transform(pos_fn):
   pos_jac_fn=jax.jacrev(pos_fn)
   return pos_jac_fn
@@ -185,7 +185,7 @@ def surface_normal_transform(pos_fn):
   du=\frac{\partial\vec{xs}}{u}
   dv=\frac{\partial\vec{xs}}{u}
   \vec{n}=\frac{d0\times d1}{|d0||d1|}
-  
+
   """
   dx_fn=contravariant_basis_transform(pos_fn)
   def fn(x):
@@ -217,24 +217,43 @@ class Curvilinear:
 
     num_steps=16
     ls=np.array([0.]*self.D)
+    angles=np.array([0.]*self.D)
     for d in range(self.D):
       p=np.array([0.5]*self.D)
-      l=0
-      
-      us=.5*jnp.ones([num_steps+1,2])
-      us=jnp.concatenate([us[:,:d],jnp.linspace(0,1,num_steps+1)[:,None],us[:,d:]],axis=1)
+
+      us=.5*jnp.ones([num_steps,2])
+      us=jnp.concatenate([us[:,:d],jnp.linspace(0,1,num_steps)[:,None],us[:,d:]],axis=1)
       # log.info(f"density {us=}")
       xs=self.batch_pos_fn(us)
 
       #TODO: vectorize
-      for i in range(num_steps):
-        dx=jnp.linalg.norm(xs[i+1]-xs[i])
-        l+=dx
-      ls[d]=l
-    segments=tuple(jnp.maximum(1,jnp.round(num*ls/np.max(ls))).astype(int).tolist())
+
+      # Distance calculation
+      # l=0
+      # for i in range(num_steps-1):
+      #   dx=jnp.linalg.norm(xs[i+1]-xs[i])
+      #   l+=dx
+      # ls[d]=l
+
+      # Angle calculation
+      a=0
+      for i in range(num_steps-(1 if self.closed[d] else 2)):
+        dx1=xs[(i+2)%num_steps]-xs[i+1]
+        dx0=xs[i+1]-xs[i]
+        da=jnp.acos(jnp.minimum(1,(dx1 @ dx0)/(jnp.linalg.norm(dx1)*jnp.linalg.norm(dx0))))
+        if jnp.isnan(da).any():
+          import pdb
+          pdb.set_trace()
+        a+=da
+      angles[d]=a
+
+    # Distance calculation
+    # segments=tuple(jnp.maximum(1,jnp.round(num*ls/jnp.max(ls))).astype(int).tolist())
     # print(f"{ls=} {segments=} {num=}")
 
-    log.info(f"{segments=}")
+    # Angle calculation
+    segments=tuple(jnp.maximum(1,jnp.round(num*angles/(2*jnp.pi))).astype(int).tolist())
+    log.info(f"{angles=} {segments=} {num=}")
 
     return segments
 

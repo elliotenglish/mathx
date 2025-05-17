@@ -39,17 +39,18 @@ def RingMagnet(structure_fn,phi,width,height):
     pos_fn,
     closed=(True,False,False),
     min_segments=(4,1,1))
-  
+
 def Support(structure_fn,uc,ground_level,width):
+  log.info(f"Support {uc=} {ground_level=} {width=}")
   xc,bc,nc=structure_fn(uc)
 
   def pos_fn(u):
-    ua=u+jnp.array([uc[0]/jnp.linalg.norm(bc[:,0])*width*(u[0]-.5),
-                    uc[1]/jnp.linalg.norm(bc[:,1])*width*(u[1]-.5),
-                    0])
-    xa=structure_fn(ua)
+    ua=uc+jnp.array([(u[0]-.5)*width/jnp.linalg.norm(bc[:,0]),
+                     (u[1]-.5)*width/jnp.linalg.norm(bc[:,1]),
+                     0])
+    xa=structure_fn(ua)[0]
     return jnp.array([xa[0],xa[1],ground_level*(1-u[2])+u[2]*xa[2]])
-  
+
   return curvilinear.Curvilinear(pos_fn)
 
 @dataclass
@@ -72,7 +73,7 @@ class Reactor:
     # n=norm_fn(u[:2])
     # return x+n*(u[2]+jnp.sin(u[0]*8*jnp.pi)*.1)
     assert False
-    
+
   # @functools.partial(jax.jit,static_argnums=(0,))
   def plasma_fn(self,u):
     def plasma_callback(u):
@@ -86,12 +87,12 @@ class Reactor:
                            jax.ShapeDtypeStruct((3,3),u.dtype)),
                           u,
                           vmap_method="expand_dims")
-    return x,b      
+    return x,b
 
   # @functools.partial(jax.jit,static_argnums=(0,))
   def structure_fn_plasma(self,u):
     up=jnp.array([u[0],u[1],1])
-    
+
     # import pdb
     # pdb.set_trace()
 
@@ -123,7 +124,7 @@ class Reactor:
     # sys.exit(0)
 
     log.info("creating components")
-    
+
     ###################################
     # Plasma
     self.plasma=Plasma(self.plasma_fn,1)
@@ -132,9 +133,9 @@ class Reactor:
     # Plasma chamber
     # self.plasma_chamber=Torus(params.plasma_chamber)
     self.plasma_chamber=PlasmaChamber(self.structure_fn,params.wall_thickness)
-    
+
     self.structure_fn_offset=lambda u:self.structure_fn(u+jnp.array([0,0,params.wall_thickness]))
-    
+
     # print(self.structure_fn(jnp.array([0.,0,0])))
     # print(self.structure_fn(jnp.array([0,.25,0])))
     # print(self.structure_fn(jnp.array([0,.5,0])))
@@ -148,28 +149,38 @@ class Reactor:
     magnet_phi=jnp.linspace(0,1,num_magnets,endpoint=False)
     # log.info(f"{magnet_phi=}")
     self.magnets=[
-      RingMagnet(self.structure_fn_offset,phi,.1,.1)
+      RingMagnet(self.structure_fn_offset,phi,.2,.2)
       for phi in magnet_phi
     ]
 
     ###################################
     # Supports
-    num_supports=0
+    rand=np.random.default_rng(54323)
+
+    num_supports=16
     self.supports=[]
     while len(self.supports)<num_supports:
-      u=np.concatenate([np.random.uniform(low=0,high=1,size=[2]),[0]])
+      u=np.concatenate([rand.uniform(low=0,high=1,size=[2]),[0]])
       x,b,n=self.structure_fn_offset(u)
-      print(u,x,n)
-      if n[2]<-.1:
-        self.aupports.Append(Support(self.structure_fn_offset,u,-3))
-        
+      # print(u,x,n)
+      if n[2]<-.9:
+        # log.info(f"support {u=} {x=} {n=}")
+        self.supports.append(Support(self.structure_fn_offset,u,-3,.01))
+
     ###################################
     # Components
-    self.components=[self.plasma,self.plasma_chamber]+self.magnets+self.supports
+    self.components=(
+      [
+        self.plasma,
+        self.plasma_chamber
+      ] +
+      self.magnets +
+      self.supports
+    )
 
     ###################################
     # Meshing
-    self.density=128
+    self.density=64
 
   def generate(self):
     log.info("meshing")

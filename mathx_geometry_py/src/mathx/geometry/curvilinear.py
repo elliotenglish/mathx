@@ -232,7 +232,7 @@ class Curvilinear:
         l+=dx
       ls[d]=l
     segments=tuple(jnp.maximum(1,jnp.round(num*ls/np.max(ls))).astype(int).tolist())
-    print(f"{ls=} {segments=} {num=}")
+    # print(f"{ls=} {segments=} {num=}")
 
     log.info(f"{segments=}")
 

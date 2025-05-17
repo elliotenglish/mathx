@@ -13,7 +13,7 @@ from mathx.core import log
 from dataclasses import dataclass
 
 def generate_test_equilibrium():
-  log.info("Computing equilibrium")  
+  log.info("Computing equilibrium")
 
   surf = FourierRZToroidalSurface(
     R_lmn=[10.0, -1.0, -0.3, 0.3],
@@ -44,17 +44,17 @@ def generate_test_equilibrium():
   )
 
   eq_sol, info = eq_init.solve(verbose=3, copy=True)
-  
+
   return eq_sol
-  
+
 def get_test_equilibrium(path="equilibrium.h5"):
   if not os.path.exists(path):
     eq_sol=generate_test_equilibrium()
-    
+
     eq_sol.save(path)
 
   eq=desc.io.load(path)
-  
+
   return eq
 
 # class Grid:
@@ -82,7 +82,7 @@ def get_test_equilibrium(path="equilibrium.h5"):
 @dataclass
 class DESCGrid:
   nodes: jnp.ndarray
-    
+
   @property
   def num_nodes(self):
     return self.nodes.shape[0]
@@ -91,8 +91,8 @@ def get_xyz_basis(eq,u):
   """
   params:
     pts:
-      [num_pts,3] where the points are arranged as (phi,theta,rho)
-      desc takes points in (rho,theta,zeta) (where phi=zeta) so we have to reverse the order of the points.
+      [num_pts,3] where the points are arranged as (phi,theta,rho) in [0,1]^3
+      desc takes points in (rho,theta,zeta) in [0,1]x[0,2*pi]^2 (where phi=zeta) so we have to reverse the order of the points.
   """
 
   # pts_desc=pts
@@ -105,7 +105,10 @@ def get_xyz_basis(eq,u):
   # xyz=eq.compute(["X","Y","Z"],grid=grid.desc())
 
   # log.info("blah")
-  rtz=u[:,::-1]*jnp.array([[1,2*jnp.pi,2*jnp.pi]])
+
+  scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
+
+  rtz=u[...,::-1]*scales
   # log.info(f"asdffdas {rtz=}")
   # import pdb
   # pdb.set_trace()
@@ -124,6 +127,13 @@ def get_xyz_basis(eq,u):
                          r["Y_r"][:,None],r["Y_t"][:,None],r["Y_z"][:,None],
                          r["Z_r"][:,None],r["Z_t"][:,None],r["Z_z"][:,None]],
                          axis=1).reshape((-1,3,3))
+  # print(f"{u=}")
+  # print(f"{rtz=}")
+  # print(f"{xyz=}")
+  # print(f"{basis=}")
+  # import pdb
+  # pdb.set_trace()
+  basis=basis[...,::-1]/scales[None,...,::-1]
   # print(rtz)
   # print(xyz)
   return xyz,basis
@@ -144,5 +154,5 @@ def get_xyz_basis(eq,u):
   #                    axis=-1)
   # print(grid_xyz)
   # print(grid_xyz.shape)
-  
+
   # return grid_xyz

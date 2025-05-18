@@ -58,7 +58,7 @@ class ReactorParameters:
   wall_thickness: float = .2
   magnet_width: float =.2
   magnet_height: float = .2
-  num_supports: int = 10
+  num_supports: int = 24
   # primary_chamber: Torus.Parameters
   # magnets: list[Magnet.Parameters]
   # heating_ports: list[Port.Parameters]
@@ -157,15 +157,18 @@ class Reactor:
     # Supports
     rand=np.random.default_rng(54323)
 
-    num_supports=16
     self.supports=[]
-    while len(self.supports)<num_supports:
-      u=np.concatenate([rand.uniform(low=0,high=1,size=[2]),[0]])
-      x,b,n=self.structure_fn_offset(u)
-      # print(u,x,n)
-      if n[2]<-.9:
-        # log.info(f"support {u=} {x=} {n=}")
-        self.supports.append(Support(self.structure_fn_offset,u,-3,.01))
+    # while len(self.supports)<params.num_supports:
+    for phi in np.linspace(0,1,params.num_supports,endpoint=False):
+      # u=np.concatenate([rand.uniform(low=0,high=1,size=[2]),[0]])
+      while True:
+        u=np.concatenate([[phi],rand.uniform(low=0,high=1,size=[1]),[0]])
+        x,b,n=self.structure_fn_offset(u)
+        # print(u,x,n)
+        if n[2]<-.9:
+          # log.info(f"support {u=} {x=} {n=}")
+          self.supports.append(Support(self.structure_fn_offset,u,-3,.01))
+          break
 
     ###################################
     # Components

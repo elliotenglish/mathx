@@ -26,7 +26,7 @@ def test_reactor():
   for i,c in enumerate(components):
     log.info(f"component {i} vtx={len(c[0])} tri={len(c[1])}")
     
-  # components=[clip_mesh(c) for c in components]
+  components=[clip_mesh(c) for c in components]
 
   path="reactor.html"
   log.info(f"generating visualization")

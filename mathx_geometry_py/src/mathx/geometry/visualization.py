@@ -43,8 +43,19 @@ def generate_vectors3d(pts,vecs,color):
     u=[v[0] for v in vecs],
     v=[v[1] for v in vecs],
     w=[v[2] for v in vecs],
-    colorscale=[[0,color_str(color)]]
+    colorscale=[[0,color_str(color)]],
+    sizemode="raw"
   )
+  
+def generate_lines3d(lines,color):
+  x=[[v[d] for l in lines for v in l+[[None]*3]] for d in range(3)]
+  return go.Scatter3d(
+    x=x[0],
+    y=x[1],
+    z=x[2],
+    mode="lines+markers",
+    marker_size=3,
+    marker=dict(color=color_str(color)))
 
 def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
   if wireframe:

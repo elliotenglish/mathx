@@ -7,9 +7,11 @@ import math
 import os
 import desc.io
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 from mathx.core import log
+from mathx.geometry import grid as gridx
 from dataclasses import dataclass
 
 def generate_test_equilibrium():
@@ -94,31 +96,15 @@ def get_xyz_basis(eq,u):
       [num_pts,3] where the points are arranged as (phi,theta,rho) in [0,1]^3
       desc takes points in (rho,theta,zeta) in [0,1]x[0,2*pi]^2 (where phi=zeta) so we have to reverse the order of the points.
   """
-
-  # pts_desc=pts
-  # if len(pts.shape)==1
-  #   pts_desc=pts_desc[None]
-  # pts_desc=jnp.flip(pts,axis=-1)
-  # pts=jnp.array([u])
-
-  # grid = Grid(L=1,M=32,N=32,NFP=eq.NFP)
-  # xyz=eq.compute(["X","Y","Z"],grid=grid.desc())
-
-  # log.info("blah")
-
   scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
-
   rtz=u[...,::-1]*scales
-  # log.info(f"asdffdas {rtz=}")
-  # import pdb
-  # pdb.set_trace()
   grid=desc.grid.Grid(nodes=rtz)
-  # grid=DESCGrid(nodes=rtz)
-  # log.info(f"compute {rtz=}")
+
   r=eq.compute(["X","Y","Z",
                 "X_r","X_t","X_z",
                 "Y_r","Y_t","Y_z",
-                "Z_r","Z_t","Z_z"],grid=grid)
+                "Z_r","Z_t","Z_z"],
+               grid=grid)
   xyz=jnp.concatenate([r["X"][:,None],
                        r["Y"][:,None],
                        r["Z"][:,None]],
@@ -127,32 +113,26 @@ def get_xyz_basis(eq,u):
                          r["Y_r"][:,None],r["Y_t"][:,None],r["Y_z"][:,None],
                          r["Z_r"][:,None],r["Z_t"][:,None],r["Z_z"][:,None]],
                          axis=1).reshape((-1,3,3))
-  # print(f"{u=}")
-  # print(f"{rtz=}")
-  # print(f"{xyz=}")
-  # print(f"{basis=}")
-  # import pdb
-  # pdb.set_trace()
   basis=basis[...,::-1]/scales[None,...,::-1]
-  # print(rtz)
-  # print(xyz)
   return xyz,basis
 
-  # def remap_desc(grid,field):
-  #   shape=grid.shape()
-  #   arr=np.ndarray(shape)
-  #   for k in range(shape[2]):
-  #     for i in range(shape[0]):
-  #       for j in range(shape[1]):
-  #         idx0=grid.linear_index([i,j,k])
-  #         arr[i,j,k]=field[idx0]
-  #   return arr
+def get_B(eq,u):
+  scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
+  rtz=u[...,::-1]*scales
+  grid=desc.grid.Grid(nodes=rtz)
+  # xyz=
 
-  # grid_xyz=np.concat([remap_desc(grid,[xyz_split["X"])[...,None],
-  #                     remap_desc(grid,xyz_split["Y"])[...,None],
-  #                     remap_desc(grid,xyz_split["Z"])[...,None]],
-  #                    axis=-1)
-  # print(grid_xyz)
-  # print(grid_xyz.shape)
+  r=eq.compute(["B","R","phi","Z"],
+               grid=grid)
 
-  # return grid_xyz
+  rpz=jnp.concatenate([r["R"][:,None],
+                       r["phi"][:,None],
+                       r["Z"][:,None]],
+                      axis=1)
+  
+  B=jax.vmap(gridx.convert_cylindrical_to_cartesian,in_axes=(0,0),out_axes=(0))(rpz,r["B"])
+
+  return B
+
+  #print(r.keys())
+  # B=jax.vmap(gridx.convert_cylindrical_to_cartesian_vector,in_axes=(0,0),out_axes=(0))(grid.r["B"]

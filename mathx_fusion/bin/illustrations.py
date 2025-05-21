@@ -1,7 +1,9 @@
 import jax.numpy as jnp
 import jax
+from mathx.geometry import grid as gridx
 from mathx.geometry import visualization as viz
 from mathx.core import log
+from mathx.fusion import equilibrium
 
 def integrate_particle_through_em_field(field_fn,x0,v0,q,m,dt):
   # https://arxiv.org/abs/2410.03352v1
@@ -21,10 +23,7 @@ def integrate_particle_through_em_field(field_fn,x0,v0,q,m,dt):
     x1=x0+dt*v1
   return x1,v1
 
-def generate_particle_viz(field_fn,x0,v0,m,q,path):
-  dt=.01
-  num_steps=1000
-  
+def get_trajectories(field_fn,x0,v0,m,q,dt,num_steps):
   xt=x0.clone()
   vt=v0.clone()
 
@@ -35,7 +34,14 @@ def generate_particle_viz(field_fn,x0,v0,m,q,path):
                    in_axes=(None,0,0,0,0,None),
                    out_axes=(0,0))(field_fn,xt,vt,q,m,dt)
     trajectories.append((xt,vt))
-  print(trajectories)
+
+  return trajectories
+
+def generate_particle_viz(field_fn,x0,v0,m,q,path):
+  dt=.01
+  num_steps=1000
+
+  trajectories=get_trajectories(field_fn,x0,v0,dt,num_steps)
 
   # Compute trajectory bounds
   lower=jnp.array([jnp.inf]*3)
@@ -49,19 +55,17 @@ def generate_particle_viz(field_fn,x0,v0,m,q,path):
   dul=upper-lower
   ranges=[jnp.linspace(lower[d],upper[d],
                        max(1,int(20*(dul[d])/max(dul)))) for d in range(3)]
-  # print(f"{ranges=}")
+
   grid=jnp.meshgrid(*ranges)
   grid=jnp.concatenate([g[...,None] for g in grid],axis=3).reshape(-1,3)
   field=jax.vmap(lambda x:field_fn(x)[0]*.05,in_axes=(0),out_axes=(0))(grid)
-  # print(f"{grid=}")
-  # print(f"{field=}")
 
   viz.write_visualization(
     [
       viz.generate_lines3d([[d[0][i].tolist() for d in trajectories] for i in range(x0.shape[0])],
                            (255,0,0)),
       # viz.generate_vectors3d(grid,field,
-                            #  (0,255,0))
+      #                        (0,255,0))
     ],
     path)
 
@@ -84,9 +88,32 @@ def generate_particle_cylindrical_B_viz():
   v0=jnp.array([[0,1,-1]])
   m=jnp.array([.01])
   q=jnp.array([1])
-  
+
   generate_particle_viz(field_fn,x0,v0,m,q,"particle_cylindrical_B.html") 
+
+def generate_particle_equilibrium_viz():
+  # u=jnp.array([[0,0,.1]]
+
+  # dt=.01
+  # num_steps=1000
+  
+  grid=gridx.generate_uniform_grid((64,16),endpoint=False)
+  grid=jnp.concatenate([grid,jnp.array([[1]]*grid.shape[0])],axis=1)
+  # print(grid)
+  
+  eq=equilibrium.get_test_equilibrium()
+
+  x=equilibrium.get_xyz_basis(eq,grid)[0]
+  B=equilibrium.get_B(eq,grid)
+  
+  viz.write_visualization(
+    [
+      viz.generate_vectors3d(x,B*.1,
+                             (0,255,0))
+    ],
+    "particle_equilibrium_B.html")
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
-  generate_particle_cylindrical_B_viz()
+  # generate_particle_cylindrical_B_viz()
+  generate_particle_equilibrium_viz()

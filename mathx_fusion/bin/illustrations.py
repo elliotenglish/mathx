@@ -106,6 +106,11 @@ def generate_particle_equilibrium_viz():
   x=equilibrium.get_xyz_basis(eq,grid)[0]
   B=equilibrium.get_B(eq,grid)
   
+  rtz=equilibrium.get_u(eq,x)
+  print(f"{grid[0]=}")
+  print(f"{rtz[0]=}")
+  print(f"{x[0]=}")
+
   viz.write_visualization(
     [
       viz.generate_vectors3d(x,B*.1,

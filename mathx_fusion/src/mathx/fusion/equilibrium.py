@@ -116,6 +116,13 @@ def get_xyz_basis(eq,u):
   basis=basis[...,::-1]/scales[None,...,::-1]
   return xyz,basis
 
+def get_u(eq,x):
+  # grid=desc.grid.Grid(nodes=x)
+  rtz=eq.map_coordinates(x,inbasis=("X","Y","Z"),outbasis=("rho","theta","zeta"))
+  scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
+  u=rtz[...,::-1]/scales[...,::-1]
+  return u
+
 def get_B(eq,u):
   scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
   rtz=u[...,::-1]*scales

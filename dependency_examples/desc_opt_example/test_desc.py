@@ -17,7 +17,7 @@ def compute_vmap(axis_size,in_batched,rtzs):
   # grid=desc.grid.Grid(nodes=rtzs,jitable=True)
   # out=eq.compute(["X"],grid)
   # return out["X"]
-  return rtzs
+  return rtzs,True
 
 compute_batch=jax.vmap(compute,in_axes=(0),out_axes=(0))
 compute_batch=jax.jit(compute_batch)

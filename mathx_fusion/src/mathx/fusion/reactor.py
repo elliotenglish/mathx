@@ -76,13 +76,13 @@ class Reactor:
 
   # @functools.partial(jax.jit,static_argnums=(0,))
   def plasma_fn(self,u):
-    def plasma_callback(u):
+    def pure_callback(u):
       us=u[None,:] if len(u.shape)==1 else u
       xs,bs=equilibrium.get_xyz_basis(self.plasma_equilibrium,us)
       xs,bs=(xs[0],bs[0]) if len(u.shape)==1 else (xs,bs)
       return xs,bs
 
-    x,b=jax.pure_callback(plasma_callback,
+    x,b=jax.pure_callback(pure_callback,
                           (jax.ShapeDtypeStruct((3,),u.dtype),
                            jax.ShapeDtypeStruct((3,3),u.dtype)),
                           u,

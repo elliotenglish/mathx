@@ -47,9 +47,9 @@ def test_map_coordinates():
   x0=compute_xyz_fn(rtz0)
 
   rtz_init=jnp.concatenate([jnp.zeros((num_nodes,1))+.001,
-                         jnp.zeros((num_nodes,1))+.001,
-                         jnp.arctan2(x0[:,1],x0[:,0])[...,None]],
-                        axis=1)
+                            jnp.zeros((num_nodes,1))+.001,
+                            jnp.arctan2(x0[:,1],x0[:,0])[...,None]],
+                           axis=1)
 
   def obj_fn(rtz):
     rtz=rtz.reshape(-1,3)

@@ -26,10 +26,11 @@ def integrate_particle_through_em_field(field_fn,x0,v0,q,m,dt):
 def get_trajectories(field_fn,x0,v0,m,q,dt,num_steps):
   xt=x0.clone()
   vt=v0.clone()
-  
+
   integrate_fn=jax.vmap(integrate_particle_through_em_field,
                         in_axes=(None,0,0,0,0,None),
                         out_axes=(0,0))
+  integrate_fn=jax.jit(integrate_fn,static_argnums=0)
 
   # Compute trajectories
   trajectories=[(x0,v0)]
@@ -95,48 +96,32 @@ def generate_particle_cylindrical_B_viz():
   generate_particle_viz(field_fn,x0,v0,m,q,"particle_cylindrical_B.html") 
 
 def generate_particle_equilibrium_viz():
-  # u=jnp.array([[0,0,.1]]
-
-  # dt=.01
-  # num_steps=1000
-  
-  grid=gridx.generate_uniform_grid((64,16,2),endpoint=False)
+  grid=gridx.generate_uniform_grid((64,16,2),endpoint=(False,False,True))
   # grid=jnp.concatenate([grid,jnp.array([[1]]*grid.shape[0])],axis=1)
   # print(grid)
   
   eq=equilibrium.get_test_equilibrium()
 
   x=equilibrium.get_xyz_basis(eq,grid)[0]
-  B=equilibrium.get_B(eq,grid)
-  
-  rtz=equilibrium.get_u(eq,x)
-  
+  B=jax.vmap(equilibrium.get_B,in_axes=(None,0),out_axes=(0))(eq,grid)
+
+  # rtz=jax.vmap(equilibrium.get_u,in_axes=(None,0),out_axes=(0))(eq,x)
+
   def field_fn(x):
-    def pure_callback(x):
-      xs=x[None,:] if len(x.shape)==1 else x
-      rtz=equilibrium.get_u(eq,xs)
-      B=equilibrium.get_B(eq,rtz)
-      B=B[0] if len(x.shape)==1 else B
-      return B,jnp.zeros(B.shape)
-    
-    return jax.pure_callback(pure_callback,
-                             (jax.ShapeDtypeStruct((3,),x.dtype),
-                              jax.ShapeDtypeStruct((3,),x.dtype)),
-                             x,
-                             vmap_method="expand_dims")
-    
+    rtz=equilibrium.get_u(eq,x)
+    B=equilibrium.get_B(eq,rtz)
+    return B,jnp.zeros(x.shape)
+
   x0=equilibrium.get_xyz_basis(eq,jnp.array([[0,0,.5]]))[0]
   v0=jnp.array([[0.5,0.5,0.5]])
-  m=jnp.array([.01])
+  m=jnp.array([.5])
   q=jnp.array([1])
 
-  dt=.001
-  num_steps=1000
+  dt=.01
+  num_steps=10000
   trajectories=get_trajectories(field_fn,x0,v0,m,q,dt,num_steps)
 
-  # print(f"{grid[0]=}")
-  # print(f"{rtz[0]=}")
-  # print(f"{x[0]=}")
+  log.info(f"{trajectories=}")
 
   viz.write_visualization(
     [

@@ -1,18 +1,21 @@
 from desc.equilibrium import Equilibrium
 from desc.geometry import FourierRZToroidalSurface
 from desc.profiles import PowerSeriesProfile
-from desc.continuation import solve_continuation_automatic
-from desc.grid import LinearGrid
-import math
+# from desc.continuation import solve_continuation_automatic
+# from desc.grid import LinearGrid
+# import math
 import os
 import desc.io
 import numpy as np
 import jax
 import jax.numpy as jnp
+import jax.scipy.optimize as jopt
 
 from mathx.core import log
 from mathx.geometry import grid as gridx
+
 from dataclasses import dataclass
+import functools
 
 def generate_test_equilibrium():
   log.info("Computing equilibrium")
@@ -116,21 +119,88 @@ def get_xyz_basis(eq,u):
   basis=basis[...,::-1]/scales[None,...,::-1]
   return xyz,basis
 
-def get_u(eq,x):
+###############################################################################
+# get_u
+
+@functools.partial(jax.jit,static_argnums=(0))
+def get_u_helper(eq,x):
+  """
+  The internal map_coordinates implementation makes use of numpy so we can't
+  jit it. So it is generally very slow. Use the scipy minimize functionality
+  instead.
+  """
   # grid=desc.grid.Grid(nodes=x)
-  rtz=eq.map_coordinates(x,inbasis=("X","Y","Z"),outbasis=("rho","theta","zeta"))
+  # rtz=eq.map_coordinates(x,inbasis=("X","Y","Z"),outbasis=("rho","theta","zeta"))
+  
+  eps=.001
+  num_nodes=x.shape[0]
+
+  # Pick a starting point at the same zeta and slightly offset from the
+  # equilibrium center. This may be singular if the gradient path leads
+  # back to the center, in which case the TODO is to implement a random
+  # initialization retry.
+  rtz_init=jnp.concatenate([jnp.zeros((num_nodes,1))+eps,
+                            jnp.zeros((num_nodes,1)),
+                            jnp.arctan2(x[:,1],x[:,0])[...,None]],
+                        axis=1)
+
+  def compute_xyz_fn(rtz):
+    x=eq.compute(["X","Y","Z"],desc.grid.Grid(nodes=rtz,jitable=True))
+    x=jnp.concatenate([x["X"][...,None],
+                       x["Y"][...,None],
+                       x["Z"][...,None]],
+                      axis=1)
+    return x
+
+  def obj_fn(rtz):
+    rtz=rtz.reshape(-1,3)
+    return jnp.linalg.norm(compute_xyz_fn(rtz)-x)**2
+
+  rtz=jopt.minimize(obj_fn,rtz_init.reshape(-1),method="BFGS").x
+
   scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
   u=rtz[...,::-1]/scales[...,::-1]
   return u
 
-def get_B(eq,u):
+# @jax.custom_batching.custom_vmap
+# def get_u(eq,x):
+#   return get_u_helper(eq,x[None,...])[0]
+
+# @get_u.def_vmap
+# def get_u_vmap(axis_size,in_batched,eq,x):
+#   return get_u_helper(eq,x),True
+
+def get_u(eq,x):
+  def callback_fn(x_):
+    x__=x_[None,...] if len(x_.shape)==1 else x_
+    u=get_u_helper(eq,x__)
+    return u[0] if len(x_.shape)==1 else u
+  
+  return jax.pure_callback(
+    callback_fn,
+    (jax.ShapeDtypeStruct((3,),x.dtype)),
+    x,
+    vmap_method="expand_dims")
+
+###############################################################################
+# get_B
+
+@functools.partial(jax.jit,static_argnums=(0))
+def get_B_helper(eq,u):
+  num_nodes=u.shape[0]
   scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
   rtz=u[...,::-1]*scales
-  grid=desc.grid.Grid(nodes=rtz)
+  grid=desc.grid.Grid(nodes=rtz,
+                      jitable=True,
+                      sort=False,
+                      is_meshgrid=False,
+                      spacing=jnp.ones((num_nodes,3)),
+                      weights=jnp.ones((num_nodes,)))
   # xyz=
 
   r=eq.compute(["B","R","phi","Z"],
-               grid=grid)
+               grid=grid,
+               override_grid=False)
 
   rpz=jnp.concatenate([r["R"][:,None],
                        r["phi"][:,None],
@@ -143,3 +213,23 @@ def get_B(eq,u):
 
   #print(r.keys())
   # B=jax.vmap(gridx.convert_cylindrical_to_cartesian_vector,in_axes=(0,0),out_axes=(0))(grid.r["B"]
+
+# @jax.custom_batching.custom_vmap
+# def get_B(eq,u):
+#   return get_B_helper(eq,u[None,...])[0]
+
+# @get_B.def_vmap
+# def get_B_vmap(axis_size,in_batched,eq,u):
+#   return get_B_helper(eq,u)
+
+def get_B(eq,u):
+  def callback_fn(u_):
+    u__=u_[None,...] if len(u_.shape)==1 else u_
+    B=get_B_helper(eq,u__)
+    return B[0] if len(u_.shape)==1 else B
+
+  return jax.pure_callback(
+    callback_fn,
+    (jax.ShapeDtypeStruct((3,),u.dtype)),
+    u,
+    vmap_method="expand_dims")

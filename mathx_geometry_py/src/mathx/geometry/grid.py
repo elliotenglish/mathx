@@ -4,7 +4,13 @@ import jax.numpy as jnp
 
 def generate_uniform_grid(shape,flatten=True,endpoint=True):
   D=len(shape)
-  pts=np.meshgrid(*[np.linspace(0,1,s,endpoint=endpoint) for s in shape])
+  endpoint=tuple([endpoint]*D) if isinstance(endpoint,bool) else endpoint
+  pts=np.meshgrid(*[
+    np.linspace(0,1,
+                shape[i],
+                endpoint=endpoint[i])
+    for i in range(D)
+    ])
   pts=np.concatenate([p[...,None] for p in pts],axis=D)
   if flatten:
     pts=pts.reshape((np.prod(np.array(shape)),D))

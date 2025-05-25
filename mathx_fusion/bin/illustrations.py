@@ -6,7 +6,26 @@ from mathx.core import log
 from mathx.fusion import equilibrium
 
 def integrate_particle_through_em_field(field_fn,x0,v0,q,m,dt):
-  # https://arxiv.org/abs/2410.03352v1
+  """
+  https://en.wikipedia.org/wiki/Particle-in-cell#The_particle_mover
+  
+  This implements the Boris algorithm (particle pusher) integration method for
+  velocity and backward euler for position. Note that while the formal
+  method definition has the velocity and position time staggered, you can still
+  use the time collocated values with an O(dt) error and get the same
+  integration stability properties.
+  
+  params:
+    field_fn: F function with the signature `(position (in meters)) -> (B (in teslas), E (...))`
+    x0: The initial position (at time t=0)
+    v0: The initial velocity (at time t=0)
+    q: The charge
+    m: The mass (in kilograms)
+    dt: The timestep
+  returns:
+    x1: The updated position (at time t=dt)
+    v1: The updated velocity (at time t=dt)
+  """
   if False:
     B,E=field_fn(x0)
     f=(q*(E+jnp.cross(v0,B)))

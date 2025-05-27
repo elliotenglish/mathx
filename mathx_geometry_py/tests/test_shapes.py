@@ -1,7 +1,9 @@
+import mathx.geometry.torus as torus
 from mathx.geometry.torus import Torus
 from mathx.geometry.cylinder import Cylinder
 from mathx.geometry.box import Box
 import mathx.geometry.visualization as viz
+import numpy as np
 
 def shape_test_helper(name,shape):
   print()
@@ -33,6 +35,14 @@ def test_torus_hollow():
 
 def test_torus_solid():
   shape_test_helper("Torus.solid",Torus(major_radius=2,minor_radius_inner=0,minor_radius_outer=.2))
+  
+def test_torus_toroid():
+  major=1.5
+  minor=.25
+  rtp=(.24,.543,.879)
+  xyz=torus.toroid_to_xyz(major,0,minor,*rtp)
+  rtp0=torus.xyz_to_toroid(major,0,minor,*xyz)
+  np.testing.assert_allclose(np.array(rtp),np.array(rtp0),rtol=1e-5)
 
 def test_cylinder_hollow():
   shape_test_helper("Cylinder.hollow",Cylinder(radius=.1,length=.05,thickness=.2))

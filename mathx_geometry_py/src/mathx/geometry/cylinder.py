@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import jax.numpy as jnp
 from dataclasses import dataclass
 
 from .curvilinear import Curvilinear
@@ -12,8 +13,8 @@ def cylinder_to_xyz(rho,phi,z):
     z: vertical position
   """
 
-  x=rho*math.cos(phi)
-  y=rho*math.sin(phi)
+  x=rho*jnp.cos(phi)
+  y=rho*jnp.sin(phi)
 
   return x,y,z
 
@@ -26,7 +27,7 @@ class Parameters:
 def Cylinder(params: Parameters = None, **kwargs):
   if params is None:
     params=Parameters(**kwargs)
-  return Curvilinear(lambda u:np.array(
+  return Curvilinear(lambda u:jnp.array(
     cylinder_to_xyz(params.radius+u[2]*params.thickness,
                     u[1]*2*math.pi,
                     u[0]*params.length)),

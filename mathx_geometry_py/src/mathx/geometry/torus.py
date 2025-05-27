@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from .curvilinear import Curvilinear
 
-def toroid_to_xyz(R,r_inner,r_outer,rho,theta,phi):
+def toroid_to_xyz(major_radius,minor_radius_inner,minor_radius_outer,rho,theta,phi):
   """
   params:
     R: major radius, the distance from the origin to the center of the toroid ring
@@ -16,13 +16,20 @@ def toroid_to_xyz(R,r_inner,r_outer,rho,theta,phi):
     phi: poloidal angle
   """
 
-  r_=r_inner+rho*(r_outer-r_inner)
-  rl=R+r_*jnp.cos(theta)
-  z=r_*jnp.sin(theta)
-  x=rl*jnp.cos(phi)
-  y=rl*jnp.sin(phi)
-
+  r=minor_radius_inner+rho*(minor_radius_outer-minor_radius_inner)
+  R=major_radius+r*jnp.cos(theta)
+  z=r*jnp.sin(theta)
+  x=R*jnp.cos(phi)
+  y=R*jnp.sin(phi)
   return x,y,z
+
+def xyz_to_toroid(major_radius,minor_radius_inner,minor_radius_outer,x,y,z):
+  phi=jnp.arctan2(y,x)
+  R=jnp.sqrt(x**2+y**2)
+  theta=jnp.arctan2(z,R-major_radius)
+  r=jnp.sqrt(z**2+(R-major_radius)**2)
+  rho=(r-minor_radius_inner)/(minor_radius_outer-minor_radius_inner)
+  return rho,theta,phi
 
 @dataclass
 class Parameters:

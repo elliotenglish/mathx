@@ -207,7 +207,8 @@ def get_B_helper(eq,u):
                        r["Z"][:,None]],
                       axis=1)
   
-  B=jax.vmap(gridx.convert_cylindrical_to_cartesian,in_axes=(0,0),out_axes=(0))(rpz,r["B"])
+  B=r["B"]
+  # B=jax.vmap(gridx.convert_cylindrical_to_cartesian,in_axes=(0,0),out_axes=(0))(rpz,B)
 
   return B
 

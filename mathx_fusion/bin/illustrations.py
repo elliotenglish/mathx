@@ -3,6 +3,7 @@ import jax
 from mathx.geometry import grid as gridx
 from mathx.geometry import visualization as viz
 from mathx.core import log
+from mathx.core import jax_utilities
 from mathx.fusion.torus_plasma import TorusPlasma
 from mathx.fusion.stellarator_plasma import StellaratorPlasma
 
@@ -55,9 +56,8 @@ def get_trajectories(field_fn,x0,v0,m,q,dt,num_steps):
   # Compute trajectories
   trajectories=[(x0,v0)]
   for i in range(num_steps):
-    log.info(f"step {i=}")
+    if i%10==0: log.info(f"step {i=} {xt[0]=} {vt[0]=}")
     xt,vt=integrate_fn(field_fn,xt,vt,q,m,dt)
-    print(xt[0],vt[0])
     trajectories.append((xt,vt))
 
   return trajectories
@@ -124,12 +124,12 @@ def generate_particle_plasma_viz(name,plasma,num_particles):
   # print(grid)
 
   log.info("computing x,basis")
-  x,basis=jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))(grid)
+  field_x,_=jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))(grid)
 
   log.info("computing B")
-  B=jax.vmap(lambda rtp:plasma.get_surface(rtp)[1] @ plasma.get_B(rtp),in_axes=(0),out_axes=(0))(grid)
+  field_B=jax.vmap(lambda rtp:plasma.get_surface(rtp)[1] @ plasma.get_B(rtp),in_axes=(0),out_axes=(0))(grid)
 
-  log.info(x[::(x.shape[0]//10)])
+  # log.info(x[::(x.shape[0]//10)])
   # import sys
   # sys.exit(1)
 
@@ -143,40 +143,39 @@ def generate_particle_plasma_viz(name,plasma,num_particles):
     return B,jnp.zeros(x.shape)
 
   log.info("setting up particle initial state")
-  x0=plasma.get_surface(jnp.array([0,0,.5]))[0][None,...]
-  v0=jnp.array([[0.5,0.5,0.5]])
-  m=jnp.array([.02])
-  q=jnp.array([1])
+  rand=jax_utilities.Generator(543245)
+  x0,B=(jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))
+    (rand.uniform(size=(num_particles,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]])))
+  v0=rand.uniform(size=(num_particles,3),low=-1.,high=1.)
+  m=jnp.array([.02]*num_particles)
+  q=jnp.array([1]*num_particles)
 
   dt=.02
-  num_steps=1000
-  
-  log.info("computing trajectories")  
+  num_steps=3000
+
+  log.info("computing trajectories")
   trajectories=get_trajectories(field_fn,x0,v0,m,q,dt,num_steps)
-  
-  log.info("blah")
+  # log.info(f"{trajectories=}")
 
-  log.info(f"{trajectories=}")
-
-  log.info(f"{x[:10]=}")
-  log.info(f"{B[:10]=}")
+  log.info(f"{field_x[:10]=}")
+  log.info(f"{field_B[:10]=}")
 
   viz.write_visualization(
     [
-      viz.generate_points3d(x,(255,0,0)),
+      # viz.generate_points3d(x,(255,0,0)),
       viz.generate_lines3d([[d[0][i].tolist() for d in trajectories] for i in range(x0.shape[0])],
                            (255,0,0)),
-      viz.generate_vectors3d(x.tolist(),(B).tolist(),
+      viz.generate_vectors3d(field_x.tolist(),field_B.tolist(),
                              (0,255,0))
     ],
     f"particle_plasma.{name}.html")
-  
+
   log.info("end")
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
-  # generate_particle_plasma_viz("torus",TorusPlasma(4,1.5),1)
-  generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1)
+  generate_particle_plasma_viz("torus",TorusPlasma(4,1.5),1)
+  # generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1)
 
 log.info("eof")

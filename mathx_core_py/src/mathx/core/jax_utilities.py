@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 def in_jax(x):
   return isinstance(x,jax.core.Tracer)
@@ -9,7 +10,10 @@ def get_params(tree):
 
 def get_shape(*args):
   return jax.numpy.broadcast_shapes(
-    *[() if (a is None or isinstance(a,(float,int))) else a.shape for a in args])
+    *[() if (a is None or isinstance(a,(float,int))) else
+      (a.shape if isinstance(a,(np.ndarray,jnp.ndarray)) else
+      a)
+      for a in args])
 
 class Generator:
   """

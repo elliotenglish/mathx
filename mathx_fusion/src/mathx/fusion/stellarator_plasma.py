@@ -1,7 +1,7 @@
 from . import equilibrium
 from .toroidal_plasma import ToroidalPlasma
 
-def StellaratorPlasma(ToroidalPlasma):
+class StellaratorPlasma(ToroidalPlasma):
   def __init__(self):
     self.eq=equilibrium.get_test_equilibrium()
 

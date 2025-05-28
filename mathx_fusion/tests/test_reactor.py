@@ -1,4 +1,6 @@
 import mathx.fusion.reactor as freact
+import mathx.fusion.torus_plasma as ftplasma
+import mathx.fusion.stellarator_plasma as fsplasma
 import mathx.geometry.visualization as viz
 from mathx.core import log
 
@@ -15,11 +17,11 @@ def clip_mesh(mesh):
   tris=[[vmap[vi] for vi in t] for t in mesh[1] if all([vi in vmap for vi in t])]
   return verts,tris
 
-def test_reactor():
+def reactor_test_helper(plasma):
   rand=np.random.default_rng(54323)
-
+  
   log.info("creating reactor")
-  reactor=freact.Reactor(params=freact.ReactorParameters())
+  reactor=freact.Reactor(plasma,params=freact.ReactorParameters())
 
   log.info("generating component meshes")
   components=reactor.generate()
@@ -43,6 +45,13 @@ def test_reactor():
     viz_els,
     "reactor.html"
   )
+  
+def test_reactor_torus()
+  reactor_test_helper("torus",ftplasma.TorusPlasma(10,4))
+
+def test_reactor_stellarator()
+  reactor_test_helper("stellarator",fsplasma.StellaratorPlasma())
 
 if __name__=="__main__":
-  test_reactor()
+  test_reactor_torus()
+  test_reactor_stellarator()

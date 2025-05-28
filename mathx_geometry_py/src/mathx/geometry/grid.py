@@ -2,11 +2,15 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
-def generate_uniform_grid(shape,flatten=True,endpoint=True):
+def expand(v,D):
+  return v if isinstance(v,(list,tuple)) else tuple([v]*D)
+
+def generate_uniform_grid(shape,flatten=True,endpoint=True,upper=1):
   D=len(shape)
-  endpoint=tuple([endpoint]*D) if isinstance(endpoint,bool) else endpoint
+  endpoint=expand(endpoint,D)
+  upper=expand(upper,D)
   pts=np.meshgrid(*[
-    np.linspace(0,1,
+    np.linspace(0,upper[i],
                 shape[i],
                 endpoint=endpoint[i])
     for i in range(D)

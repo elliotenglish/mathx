@@ -92,32 +92,50 @@ class DESCGrid:
   def num_nodes(self):
     return self.nodes.shape[0]
 
-def get_xyz_basis(eq,u):
+# @functools.partial(jax.jit,static_argnums=(0))
+def get_xyz_basis_helper(eq,rtz):
   """
   params:
     pts:
-      [num_pts,3] where the points are arranged as (phi,theta,rho) in [0,1]^3
-      desc takes points in (rho,theta,zeta) in [0,1]x[0,2*pi]^2 (where phi=zeta) so we have to reverse the order of the points.
+      [num_pts,3] where the points are arranged as (rho,theta,zeta) in [0,1]x[0,2*\pi]x[0,2*\pi]
   """
-  scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
-  rtz=u[...,::-1]*scales
+  log.info("getting grid")
   grid=desc.grid.Grid(nodes=rtz)
 
+  log.info("computing values")
   r=eq.compute(["X","Y","Z",
                 "X_r","X_t","X_z",
                 "Y_r","Y_t","Y_z",
                 "Z_r","Z_t","Z_z"],
-               grid=grid)
+               grid=grid,
+               override_grid=False)
+  log.info("concat 1")
   xyz=jnp.concatenate([r["X"][:,None],
                        r["Y"][:,None],
                        r["Z"][:,None]],
                        axis=1)
+  log.info("concat 2")
   basis=jnp.concatenate([r["X_r"][:,None],r["X_t"][:,None],r["X_z"][:,None],
                          r["Y_r"][:,None],r["Y_t"][:,None],r["Y_z"][:,None],
                          r["Z_r"][:,None],r["Z_t"][:,None],r["Z_z"][:,None]],
                          axis=1).reshape((-1,3,3))
-  basis=basis[...,::-1]/scales[None,...,::-1]
   return xyz,basis
+
+def get_xyz_basis(eq,rtz):
+  def callback_fn(rtz_):
+    rtz__=rtz_[None,...] if len(rtz_.shape)==1 else rtz_
+    xyz,basis=get_xyz_basis_helper(eq,rtz__)
+    xyz,basis=(xyz[0],basis[0]) if len(rtz_.shape)==1 else (xyz,basis)
+    xyz.block_until_ready()
+    basis.block_until_ready()
+    return xyz,basis
+
+  return jax.pure_callback(
+    callback_fn,
+    (jax.ShapeDtypeStruct((3,),rtz.dtype),
+     jax.ShapeDtypeStruct((3,3,),rtz.dtype)),
+    rtz,
+    vmap_method="expand_dims")
 
 ###############################################################################
 # get_u
@@ -131,7 +149,7 @@ def get_u_helper(eq,x):
   """
   # grid=desc.grid.Grid(nodes=x)
   # rtz=eq.map_coordinates(x,inbasis=("X","Y","Z"),outbasis=("rho","theta","zeta"))
-  
+
   eps=.001
   num_nodes=x.shape[0]
 
@@ -145,7 +163,9 @@ def get_u_helper(eq,x):
                         axis=1)
 
   def compute_xyz_fn(rtz):
-    x=eq.compute(["X","Y","Z"],desc.grid.Grid(nodes=rtz,jitable=True))
+    x=eq.compute(["X","Y","Z"],
+                 desc.grid.Grid(nodes=rtz,jitable=True),
+                 override_grid=False)
     x=jnp.concatenate([x["X"][...,None],
                        x["Y"][...,None],
                        x["Z"][...,None]],
@@ -156,11 +176,8 @@ def get_u_helper(eq,x):
     rtz=rtz.reshape(-1,3)
     return jnp.linalg.norm(compute_xyz_fn(rtz)-x)**2
 
-  rtz=jopt.minimize(obj_fn,rtz_init.reshape(-1),method="BFGS").x
-
-  scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
-  u=rtz[...,::-1]/scales[...,::-1]
-  return u
+  rtz=jopt.minimize(obj_fn,rtz_init.reshape(-1),method="BFGS").x.reshape(-1,3)
+  return rtz
 
 # @jax.custom_batching.custom_vmap
 # def get_u(eq,x):
@@ -174,8 +191,10 @@ def get_u(eq,x):
   def callback_fn(x_):
     x__=x_[None,...] if len(x_.shape)==1 else x_
     u=get_u_helper(eq,x__)
-    return u[0] if len(x_.shape)==1 else u
-  
+    u=u[0] if len(x_.shape)==1 else u
+    u.block_until_ready()
+    return u
+
   return jax.pure_callback(
     callback_fn,
     (jax.ShapeDtypeStruct((3,),x.dtype)),
@@ -188,8 +207,7 @@ def get_u(eq,x):
 @functools.partial(jax.jit,static_argnums=(0))
 def get_B_helper(eq,u):
   num_nodes=u.shape[0]
-  scales=jnp.array([[1,2*jnp.pi,2*jnp.pi]])
-  rtz=u[...,::-1]*scales
+  rtz=u
   grid=desc.grid.Grid(nodes=rtz,
                       jitable=True,
                       sort=False,
@@ -198,19 +216,27 @@ def get_B_helper(eq,u):
                       weights=jnp.ones((num_nodes,)))
   # xyz=
 
-  r=eq.compute(["B","R","phi","Z"],
-               grid=grid,
-               override_grid=False)
+  # r=eq.compute(["B","R","phi","Z"],
+  #              grid=grid,
+  #              override_grid=False)
 
-  rpz=jnp.concatenate([r["R"][:,None],
-                       r["phi"][:,None],
-                       r["Z"][:,None]],
-                      axis=1)
-  
-  B=r["B"]
+  # rpz=jnp.concatenate([r["R"][:,None],
+  #                      r["phi"][:,None],
+  #                      r["Z"][:,None]],
+  #                     axis=1)
+
+  # B=r["B"]
   # B=jax.vmap(gridx.convert_cylindrical_to_cartesian,in_axes=(0,0),out_axes=(0))(rpz,B)
+  
+  r=eq.compute(["B^rho","B^theta","B^zeta"],
+               grid,
+               override_grid=False)
+  B_rtz=jnp.concatenate([r["B^rho"][...,None],
+                         r["B^theta"][...,None],
+                         r["B^zeta"][...,None]],
+                        axis=1)
 
-  return B
+  return B_rtz
 
   #print(r.keys())
   # B=jax.vmap(gridx.convert_cylindrical_to_cartesian_vector,in_axes=(0,0),out_axes=(0))(grid.r["B"]
@@ -227,7 +253,9 @@ def get_B(eq,u):
   def callback_fn(u_):
     u__=u_[None,...] if len(u_.shape)==1 else u_
     B=get_B_helper(eq,u__)
-    return B[0] if len(u_.shape)==1 else B
+    B=B[0] if len(u_.shape)==1 else B
+    B.block_until_ready()
+    return B
 
   return jax.pure_callback(
     callback_fn,

@@ -2,11 +2,11 @@ import numpy as np
 import paramak
 import math
 
-from mathx.geometry.torus import Torus
-from mathx.geometry.cylinder import Cylinder
+# from mathx.geometry.torus import Torus
+# from mathx.geometry.cylinder import Cylinder
 from mathx.geometry import curvilinear
-from mathx.fusion import equilibrium
 from mathx.core import log
+from .toroidal_plasma import ToroidalPlasma
 # from .magnet import Magnet
 
 from dataclasses import dataclass
@@ -14,7 +14,7 @@ import jax
 import jax.numpy as jnp
 import functools
 
-def Plasma(structure_fn,surface):
+def PlasmaSurface(plasma,surface):
   log.info(f"Plasma {surface=}")
   return curvilinear.Curvilinear(
     lambda u: structure_fn(jnp.array([u[0],u[1],u[2]*surface]))[0],
@@ -67,14 +67,6 @@ class ReactorParameters:
 
 class Reactor:
   # @functools.partial(jax.jit,static_argnums=(0,))
-  def structure_fn_torus(self,u):
-    # norm_fn=curvilinear.surface_normal_transform(self.surface_fn)
-    # x=self.surface_fn(u[:2])
-    # n=norm_fn(u[:2])
-    # return x+n*(u[2]+jnp.sin(u[0]*8*jnp.pi)*.1)
-    assert False
-
-  # @functools.partial(jax.jit,static_argnums=(0,))
   def plasma_fn(self,u):
     def pure_callback(u):
       us=u[None,:] if len(u.shape)==1 else u
@@ -96,16 +88,17 @@ class Reactor:
     # import pdb
     # pdb.set_trace()
 
-    x,b=self.plasma_fn(up)
+    x,b=self.plasma.get_surface(u)
     n=-jnp.cross(b[:,0],b[:,1])
     n=n/jnp.linalg.norm(n)
     x=x+u[2]*n
 
     return x,b,n
 
-  def __init__(self, params: ReactorParameters):
+  def __init__(self, plasma, params: ReactorParameters):
     params.wall_thickness=0.2
-    self.plasma_equilibrium=equilibrium.get_test_equilibrium()
+    self.plasma=plasma
+    self.plasma_surface=PlasmaSurface(self.plasma,1)
 
     self.structure_fn=self.structure_fn_plasma
 
@@ -127,7 +120,7 @@ class Reactor:
 
     ###################################
     # Plasma
-    self.plasma=Plasma(self.plasma_fn,1)
+    self.plasma=PlasmaSurface(self.plasma,1)
 
     ###################################
     # Plasma chamber

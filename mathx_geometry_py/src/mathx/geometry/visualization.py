@@ -1,4 +1,5 @@
 import plotly.graph_objects as go
+from mathx.core import log
 
 from .tetrahedron import tetrahedron_to_triangle
 
@@ -34,7 +35,7 @@ def generate_points3d(pts,color):
     mode="markers",
     marker_size=3
   )
-  
+
 def generate_vectors3d(pts,vecs,color):
   return go.Cone(
     x=[p[0] for p in pts],
@@ -133,7 +134,10 @@ def generate_cone3d(pos,vec):
     anchor="tip")
 
 def write_visualization(elements,path):
+  log.info(f"generating figure elements={len(elements)}")
   fig = go.Figure(data=elements)
+  log.info(f"enforcing symmetric axis scaling")
   fig.update_scenes(aspectmode="data")
   # fig.update_scenes(aspectratio={"x":1,"y":1,"z":1})
+  log.info(f"writing to path={path}")
   fig.write_html(path)

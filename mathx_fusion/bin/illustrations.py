@@ -3,18 +3,19 @@ import jax
 from mathx.geometry import grid as gridx
 from mathx.geometry import visualization as viz
 from mathx.core import log
-from mathx.fusion import equilibrium
+from mathx.fusion.torus_plasma import TorusPlasma
+from mathx.fusion.stellarator_plasma import StellaratorPlasma
 
 def integrate_particle_through_em_field(field_fn,x0,v0,q,m,dt):
   """
   https://en.wikipedia.org/wiki/Particle-in-cell#The_particle_mover
-  
+
   This implements the Boris algorithm (particle pusher) integration method for
   velocity and backward euler for position. Note that while the formal
   method definition has the velocity and position time staggered, you can still
   use the time collocated values with an O(dt) error and get the same
   integration stability properties.
-  
+
   params:
     field_fn: F function with the signature `(position (in meters)) -> (B (in teslas), E (...))`
     x0: The initial position (at time t=0)
@@ -56,6 +57,7 @@ def get_trajectories(field_fn,x0,v0,m,q,dt,num_steps):
   for i in range(num_steps):
     log.info(f"step {i=}")
     xt,vt=integrate_fn(field_fn,xt,vt,q,m,dt)
+    print(xt[0],vt[0])
     trajectories.append((xt,vt))
 
   return trajectories
@@ -73,7 +75,7 @@ def generate_particle_viz(field_fn,x0,v0,m,q,path):
     lower=jnp.minimum(lower,d[0].min(axis=0))
     upper=jnp.maximum(upper,d[0].max(axis=0))
   print(lower,upper)
-  
+
   # Compute magnetic fields
   dul=upper-lower
   ranges=[jnp.linspace(lower[d],upper[d],
@@ -100,58 +102,81 @@ def generate_particle_constant_B_viz():
   v0=jnp.array([[1,0,-1],[1,.5,-.5]])
   m=jnp.array([1,.1])
   q=jnp.array([1,-1])
-  
+
   generate_particle_viz(field_fn,x0,v0,m,q,"particle_constant_B.html")
-  
+
 def generate_particle_cylindrical_B_viz():
   def field_fn(x):
     return jnp.array([x[1],-x[0],0]),jnp.array([0,0,0])
-  
+
   x0=jnp.array([[1,0,0]])
   v0=jnp.array([[0,1,-1]])
   m=jnp.array([.01])
   q=jnp.array([1])
 
-  generate_particle_viz(field_fn,x0,v0,m,q,"particle_cylindrical_B.html") 
+  generate_particle_viz(field_fn,x0,v0,m,q,"particle_cylindrical_B.html")
 
-def generate_particle_equilibrium_viz():
-  grid=gridx.generate_uniform_grid((64,16,2),endpoint=(False,False,True))
+def generate_particle_plasma_viz(name,plasma,num_particles):
+  log.info("computing grid")
+
+  grid=gridx.generate_uniform_grid((2,16,64),endpoint=(True,False,False),upper=[1,2*jnp.pi,2*jnp.pi])
   # grid=jnp.concatenate([grid,jnp.array([[1]]*grid.shape[0])],axis=1)
   # print(grid)
-  
-  eq=equilibrium.get_test_equilibrium()
 
-  x=equilibrium.get_xyz_basis(eq,grid)[0]
-  B=jax.vmap(equilibrium.get_B,in_axes=(None,0),out_axes=(0))(eq,grid)
+  log.info("computing x,basis")
+  x,basis=jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))(grid)
+
+  log.info("computing B")
+  B=jax.vmap(lambda rtp:plasma.get_surface(rtp)[1] @ plasma.get_B(rtp),in_axes=(0),out_axes=(0))(grid)
+
+  log.info(x[::(x.shape[0]//10)])
+  # import sys
+  # sys.exit(1)
 
   # rtz=jax.vmap(equilibrium.get_u,in_axes=(None,0),out_axes=(0))(eq,x)
 
   def field_fn(x):
-    rtz=equilibrium.get_u(eq,x)
-    B=equilibrium.get_B(eq,rtz)
+    rtz=plasma.get_u(x)
+    _,basis=plasma.get_surface(rtz)
+    B=plasma.get_B(rtz)
+    B=basis @ B
     return B,jnp.zeros(x.shape)
 
-  x0=equilibrium.get_xyz_basis(eq,jnp.array([[0,0,.5]]))[0]
+  log.info("setting up particle initial state")
+  x0=plasma.get_surface(jnp.array([0,0,.5]))[0][None,...]
   v0=jnp.array([[0.5,0.5,0.5]])
-  m=jnp.array([.5])
+  m=jnp.array([.02])
   q=jnp.array([1])
 
-  dt=.01
-  num_steps=10000
+  dt=.02
+  num_steps=1000
+  
+  log.info("computing trajectories")  
   trajectories=get_trajectories(field_fn,x0,v0,m,q,dt,num_steps)
+  
+  log.info("blah")
 
   log.info(f"{trajectories=}")
 
+  log.info(f"{x[:10]=}")
+  log.info(f"{B[:10]=}")
+
   viz.write_visualization(
     [
+      viz.generate_points3d(x,(255,0,0)),
       viz.generate_lines3d([[d[0][i].tolist() for d in trajectories] for i in range(x0.shape[0])],
                            (255,0,0)),
-      viz.generate_vectors3d(x,B*.1,
+      viz.generate_vectors3d(x.tolist(),(B).tolist(),
                              (0,255,0))
     ],
-    "particle_equilibrium_B.html")
+    f"particle_plasma.{name}.html")
+  
+  log.info("end")
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
-  generate_particle_equilibrium_viz()
+  # generate_particle_plasma_viz("torus",TorusPlasma(4,1.5),1)
+  generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1)
+
+log.info("eof")

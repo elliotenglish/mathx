@@ -1,21 +1,26 @@
-from . import torus
+from mathx.geometry import torus
+from mathx.geometry import curvilinear
 from .toroidal_plasma import ToroidalPlasma
 import jax.numpy as jnp
 
-def TorusPlasma(ToroidalPlasma):
+class TorusPlasma(ToroidalPlasma):
   def __init__(self,major_radius,minor_radius):
-    self.major_radius=major_radius,
+    self.major_radius=major_radius
     self.minor_radius=minor_radius
 
-  def get_surface(self,u):
-    rtp=[u[2],u[1]*2*jnp.pi,u[0]*2*jnp.pi]
-    xyz=torus.toroid_to_xyz(self.major_radius,0,self.minor_radius,
-                            *rtp)
-    return jnp.array(xyz)
+  def get_surface(self,rtz):
+    def xyz_fn(rtp):
+      return jnp.array(torus.toroid_to_xyz(self.major_radius,0,self.minor_radius,rtp[0],rtp[1],rtp[2]))
 
-  def get_B(self,u):
-    return jnp.array(1,0,0)
-  
+    basis_fn=curvilinear.contravariant_basis_transform(xyz_fn)
+    xyz=xyz_fn(rtz)
+    basis=basis_fn(rtz)
+
+    return xyz,basis
+
+  def get_B(self,rtz):
+    return jnp.array([0,jnp.pi*.1,.1])
+
   def get_u(self,x):
-    rtp=torus.xyz_to_toroid(self.major_radius,0,self.minor_radius,*x)
-    return jnp.array([rtp[0]/(2*jnp.pi),rtp[1]/(2*jnp.pi),rtp[2]])
+    rtz=torus.xyz_to_toroid(self.major_radius,0,self.minor_radius,*x)
+    return jnp.array(rtz)

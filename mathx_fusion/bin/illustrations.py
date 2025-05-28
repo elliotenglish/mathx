@@ -7,6 +7,16 @@ from mathx.core import jax_utilities
 from mathx.fusion.torus_plasma import TorusPlasma
 from mathx.fusion.stellarator_plasma import StellaratorPlasma
 
+def compute_bounds(x):
+  return jnp.min(x,axis=0),jnp.max(x,axis=0)
+
+def compute_characteristic_length(x):
+  low,high=compute_bounds(x)
+  return jnp.max(high-low)
+
+def compute_vector_length(v):
+  return jnp.max(jnp.linalg.norm(v,axis=1))
+
 def integrate_particle_through_em_field(field_fn,x0,v0,q,m,dt):
   """
   https://en.wikipedia.org/wiki/Particle-in-cell#The_particle_mover
@@ -119,7 +129,7 @@ def generate_particle_cylindrical_B_viz():
 def generate_particle_plasma_viz(name,plasma,num_particles):
   log.info("computing grid")
 
-  grid=gridx.generate_uniform_grid((2,16,64),endpoint=(True,False,False),upper=[1,2*jnp.pi,2*jnp.pi])
+  grid=gridx.generate_uniform_grid((2,12,48),endpoint=(True,False,False),upper=[1,2*jnp.pi,2*jnp.pi])
   # grid=jnp.concatenate([grid,jnp.array([[1]]*grid.shape[0])],axis=1)
   # print(grid)
 
@@ -160,22 +170,21 @@ def generate_particle_plasma_viz(name,plasma,num_particles):
   log.info(f"{field_x[:10]=}")
   log.info(f"{field_B[:10]=}")
 
+  max_vec_ratio=.02
+  vec_scale=max_vec_ratio*compute_characteristic_length(field_x)/compute_vector_length(field_B)
+
   viz.write_visualization(
     [
       # viz.generate_points3d(x,(255,0,0)),
       viz.generate_lines3d([[d[0][i].tolist() for d in trajectories] for i in range(x0.shape[0])],
-                           (255,0,0)),
-      viz.generate_vectors3d(field_x.tolist(),field_B.tolist(),
-                             (0,255,0))
+                           (0,0,255)),
+      viz.generate_vectors3d(field_x.tolist(),(vec_scale*field_B).tolist(),
+                             (255,0,0))
     ],
     f"particle_plasma.{name}.html")
-
-  log.info("end")
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
   generate_particle_plasma_viz("torus",TorusPlasma(4,1.5),1)
   # generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1)
-
-log.info("eof")

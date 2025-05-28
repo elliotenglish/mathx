@@ -1,5 +1,6 @@
 import plotly.graph_objects as go
 from mathx.core import log
+import numpy as np
 
 from .tetrahedron import tetrahedron_to_triangle
 
@@ -44,10 +45,13 @@ def generate_vectors3d(pts,vecs,color):
     u=[v[0] for v in vecs],
     v=[v[1] for v in vecs],
     w=[v[2] for v in vecs],
-    colorscale=[[0,color_str(color)]],
-    sizemode="raw"
+    autocolorscale=False,
+    colorscale="Portland",
+    # colorscale=[(0,color_str(color)),
+    #             (1,color_str(color))],
+    sizemode="raw",
   )
-  
+
 def generate_lines3d(lines,color):
   x=[[v[d] for l in lines for v in l+[[None]*3]] for d in range(3)]
   return go.Scatter3d(
@@ -120,18 +124,6 @@ def generate_scatter3d(vtx,color):
         opacity=0.8
     )
   )
-  
-def generate_cone3d(pos,vec):
-  return go.Cone(
-    x=[p[0] for p in pos],
-    y=[p[1] for p in pos],
-    z=[p[2] for p in pos],
-    u=[v[0] for v in vec],
-    v=[v[1] for v in vec],
-    w=[v[2] for v in vec],
-    sizemode="absolute",
-    sizeref=2,
-    anchor="tip")
 
 def write_visualization(elements,path):
   log.info(f"generating figure elements={len(elements)}")

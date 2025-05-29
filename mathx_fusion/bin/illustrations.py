@@ -156,7 +156,7 @@ def generate_particle_plasma_viz(name,plasma,num_particles):
   rand=jax_utilities.Generator(543245)
   x0,B=(jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))
     (rand.uniform(size=(num_particles,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]])))
-  v0=rand.uniform(size=(num_particles,3),low=-1.,high=1.)
+  v0=rand.uniform(size=(num_particles,3),low=-2.,high=2.)
   m=jnp.array([.02]*num_particles)
   q=jnp.array([1]*num_particles)
 
@@ -187,4 +187,4 @@ if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
   generate_particle_plasma_viz("torus",TorusPlasma(4,1.5),1)
-  # generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1)
+  generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1)

@@ -46,7 +46,7 @@ def generate_vectors3d(pts,vecs,color):
     v=[v[1] for v in vecs],
     w=[v[2] for v in vecs],
     autocolorscale=False,
-    colorscale="Portland",
+    colorscale="jet",
     # colorscale=[(0,color_str(color)),
     #             (1,color_str(color))],
     sizemode="raw",

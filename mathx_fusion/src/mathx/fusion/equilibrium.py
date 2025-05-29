@@ -92,29 +92,29 @@ class DESCGrid:
   def num_nodes(self):
     return self.nodes.shape[0]
 
-# @functools.partial(jax.jit,static_argnums=(0))
+@functools.partial(jax.jit,static_argnums=(0))
 def get_xyz_basis_helper(eq,rtz):
   """
   params:
     pts:
       [num_pts,3] where the points are arranged as (rho,theta,zeta) in [0,1]x[0,2*\pi]x[0,2*\pi]
   """
-  log.info("getting grid")
-  grid=desc.grid.Grid(nodes=rtz)
+  # log.info("getting grid")
+  grid=desc.grid.Grid(nodes=rtz,jitable=True)
 
-  log.info("computing values")
+  # log.info("computing values")
   r=eq.compute(["X","Y","Z",
                 "X_r","X_t","X_z",
                 "Y_r","Y_t","Y_z",
                 "Z_r","Z_t","Z_z"],
                grid=grid,
                override_grid=False)
-  log.info("concat 1")
+  # log.info("concat 1")
   xyz=jnp.concatenate([r["X"][:,None],
                        r["Y"][:,None],
                        r["Z"][:,None]],
                        axis=1)
-  log.info("concat 2")
+  # log.info("concat 2")
   basis=jnp.concatenate([r["X_r"][:,None],r["X_t"][:,None],r["X_z"][:,None],
                          r["Y_r"][:,None],r["Y_t"][:,None],r["Y_z"][:,None],
                          r["Z_r"][:,None],r["Z_t"][:,None],r["Z_z"][:,None]],

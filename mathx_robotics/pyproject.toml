@@ -26,7 +26,7 @@ dependencies=[
   "matplotlib",
   "pyqt6", #Needed for interactive plots
   "natsort",
-  "fiblat<0.6",
+  #"fiblat<0.6",
   "rlax", #Needed to avoid dm-acme/dm-env installing rlax from the repo
   "dm-haiku",
   #"dm-haiku @ git+https://github.com/google-deepmind/dm-haiku.git",

@@ -17,9 +17,10 @@ import functools
 def PlasmaSurface(plasma,surface):
   log.info(f"Plasma {surface=}")
   return curvilinear.Curvilinear(
-    lambda u: structure_fn(jnp.array([u[0],u[1],u[2]*surface]))[0],
-    closed=(True,True,False),
-    degenerate=(None,None,((False,True),None)))
+    lambda u: plasma.get_surface(
+      jnp.array([u[0]*surface,u[1]*2*jnp.pi,u[2]*2*jnp.pi]))[0],
+    closed=(False,True,True),
+    degenerate=(((False,True),None),None,None))
 
 def PlasmaChamber(structure_fn,thickness):
   log.info(f"PlasmaChamber {thickness=}")

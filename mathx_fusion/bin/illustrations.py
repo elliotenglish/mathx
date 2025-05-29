@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import jax.numpy as jnp
 import jax
 from mathx.geometry import grid as gridx
@@ -6,6 +8,7 @@ from mathx.core import log
 from mathx.core import jax_utilities
 from mathx.fusion.torus_plasma import TorusPlasma
 from mathx.fusion.stellarator_plasma import StellaratorPlasma
+from mathx.fusion import reactor as freact
 
 def compute_bounds(x):
   return jnp.min(x,axis=0),jnp.max(x,axis=0)
@@ -55,20 +58,38 @@ def integrate_particle_through_em_field(field_fn,x0,v0,q,m,dt):
   return x1,v1
 
 def get_trajectories(field_fn,x0,v0,m,q,dt,num_steps):
-  xt=x0.clone()
-  vt=v0.clone()
-
   integrate_fn=jax.vmap(integrate_particle_through_em_field,
                         in_axes=(None,0,0,0,0,None),
                         out_axes=(0,0))
   integrate_fn=jax.jit(integrate_fn,static_argnums=0)
 
   # Compute trajectories
+  xt=x0.clone()
+  vt=v0.clone()
   trajectories=[(x0,v0)]
   for i in range(num_steps):
     if i%10==0: log.info(f"step {i=} {xt[0]=} {vt[0]=}")
     xt,vt=integrate_fn(field_fn,xt,vt,q,m,dt)
     trajectories.append((xt,vt))
+
+  return trajectories
+
+def get_field_lines(field_fn,x0,dt,num_steps):
+  def integrate_fn(x0):
+    v=field_fn(x0)[0]
+    v/=jnp.linalg.norm(v)
+    x1=x0+dt*v
+    return x1
+  integrate_fn=jax.vmap(integrate_fn,in_axes=(0),out_axes=(0))
+  integrate_fn=jax.jit(integrate_fn)
+
+  # Compute trajectories
+  xt=x0.clone()
+  trajectories=[x0]
+  for i in range(num_steps):
+    if i%10==0: log.info(f"step {i=} {xt[0]=}")
+    xt=integrate_fn(xt)
+    trajectories.append(xt)
 
   return trajectories
 
@@ -84,7 +105,7 @@ def generate_particle_viz(field_fn,x0,v0,m,q,path):
   for d in trajectories:
     lower=jnp.minimum(lower,d[0].min(axis=0))
     upper=jnp.maximum(upper,d[0].max(axis=0))
-  print(lower,upper)
+  log.info(f"{lower=} {upper=}")
 
   # Compute magnetic fields
   dul=upper-lower
@@ -126,65 +147,90 @@ def generate_particle_cylindrical_B_viz():
 
   generate_particle_viz(field_fn,x0,v0,m,q,"particle_cylindrical_B.html")
 
-def generate_particle_plasma_viz(name,plasma,num_particles):
-  log.info("computing grid")
+def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
+  rand=jax_utilities.Generator(543245)
 
+  #setup field evaluation functions
+  def field_fn_rtz(rtz):
+    _,basis=plasma.get_surface(rtz)
+    B=plasma.get_B(rtz)
+    B=basis @ B
+    return B,jnp.zeros(rtz.shape)
+
+  def field_fn(x):
+    rtz=plasma.get_u(x)
+    return field_fn_rtz(rtz)
+
+  field_fn_rtz_batch=jax.vmap(field_fn_rtz,in_axes=(0),out_axes=(0,0))
+  field_fn_rtz_batch=jax.jit(field_fn_rtz_batch)
+  
+  surface_fn_batch=jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))
+  surface_fn_batch=jax.jit(surface_fn_batch)
+
+  log.info("computing grid")
   grid=gridx.generate_uniform_grid((2,12,48),endpoint=(True,False,False),upper=[1,2*jnp.pi,2*jnp.pi])
   # grid=jnp.concatenate([grid,jnp.array([[1]]*grid.shape[0])],axis=1)
   # print(grid)
 
+  log.info("computing EM field geometry")
   log.info("computing x,basis")
-  field_x,_=jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))(grid)
-
+  surface_x,_=surface_fn_batch(grid)
   log.info("computing B")
-  field_B=jax.vmap(lambda rtp:plasma.get_surface(rtp)[1] @ plasma.get_B(rtp),in_axes=(0),out_axes=(0))(grid)
+  surface_B=field_fn_rtz_batch(grid)[0]
 
-  # log.info(x[::(x.shape[0]//10)])
-  # import sys
-  # sys.exit(1)
+  log.info("computing magnetic field lines")
+  field_x0,_=surface_fn_batch(
+    rand.uniform(size=(num_field_lines,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]]))
+  
+  log.info(f"{field_x0=}")
 
-  # rtz=jax.vmap(equilibrium.get_u,in_axes=(None,0),out_axes=(0))(eq,x)
+  log.info("integrating")
+  field_lines=get_field_lines(field_fn,field_x0,.01,2000)
 
-  def field_fn(x):
-    rtz=plasma.get_u(x)
-    _,basis=plasma.get_surface(rtz)
-    B=plasma.get_B(rtz)
-    B=basis @ B
-    return B,jnp.zeros(x.shape)
+  # log.info(f"{surface_x[:10]=}")
+  # log.info(f"{surface_B[:10]=}")
+  log.info(f"{field_lines[:3]}")
 
-  log.info("setting up particle initial state")
-  rand=jax_utilities.Generator(543245)
-  x0,B=(jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))
-    (rand.uniform(size=(num_particles,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]])))
+  max_vec_ratio=.03
+  vec_scale=max_vec_ratio*compute_characteristic_length(surface_x)/compute_vector_length(surface_B)
+  log.info(f"{vec_scale=}")
+
+  plasma_component=freact.PlasmaSurface(plasma,1)
+
+  viz.write_visualization(
+    [
+      viz.generate_mesh3d(mesh=plasma_component.tesselate_surface(64),
+                          color=(255,0,0),opacity=0.2),
+      viz.generate_lines3d(lines=[[field_lines[i][j] for i in range(len(field_lines))] for j in range(field_lines[0].shape[0])],
+                           color=(0,255,0),
+                           markers=False),
+      viz.generate_vectors3d(surface_x.tolist(),(vec_scale*surface_B).tolist(),
+      )#color=(0,255,255))
+    ],
+    f"{name}.magnetic_field.html"
+  )
+
+  log.info("compute particle trajectories")
+  x0,_=surface_fn_batch(
+    rand.uniform(size=(num_particles,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]]))
   v0=rand.uniform(size=(num_particles,3),low=-2.,high=2.)
   m=jnp.array([.02]*num_particles)
   q=jnp.array([1]*num_particles)
 
-  dt=.02
-  num_steps=3000
-
-  log.info("computing trajectories")
-  trajectories=get_trajectories(field_fn,x0,v0,m,q,dt,num_steps)
-  # log.info(f"{trajectories=}")
-
-  log.info(f"{field_x[:10]=}")
-  log.info(f"{field_B[:10]=}")
-
-  max_vec_ratio=.02
-  vec_scale=max_vec_ratio*compute_characteristic_length(field_x)/compute_vector_length(field_B)
+  log.info("integrating")
+  particle_trajectories=get_trajectories(field_fn,x0,v0,m,q,.02,5000)
 
   viz.write_visualization(
     [
-      # viz.generate_points3d(x,(255,0,0)),
-      viz.generate_lines3d([[d[0][i].tolist() for d in trajectories] for i in range(x0.shape[0])],
-                           (0,0,255)),
-      viz.generate_vectors3d(field_x.tolist(),(vec_scale*field_B).tolist(),
-                             (255,0,0))
+      viz.generate_mesh3d(mesh=plasma_component.tesselate_surface(64),
+                          opacity=.2),
+      viz.generate_lines3d([[d[0][i].tolist() for d in particle_trajectories] for i in range(x0.shape[0])],
+                           (0,0,255))
     ],
-    f"particle_plasma.{name}.html")
+    f"{name}.particle_trace.html")
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
-  generate_particle_plasma_viz("torus",TorusPlasma(4,1.5),1)
-  generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1)
+  generate_particle_plasma_viz("torus",TorusPlasma(4,1.5),1,10)
+  generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1,10)

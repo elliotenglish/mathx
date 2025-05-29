@@ -1,3 +1,9 @@
+import jax
+for d in jax.devices():
+  if d.platform=="gpu":
+    import desc
+    desc.set_device("gpu")
+
 from desc.equilibrium import Equilibrium
 from desc.geometry import FourierRZToroidalSurface
 from desc.profiles import PowerSeriesProfile

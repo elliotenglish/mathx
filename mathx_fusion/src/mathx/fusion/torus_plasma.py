@@ -19,7 +19,7 @@ class TorusPlasma(ToroidalPlasma):
     return xyz,basis
 
   def get_B(self,rtz):
-    return jnp.array([0,jnp.pi*.1,.1])
+    return jnp.array([0,jnp.pi*.05,.05])
 
   def get_u(self,x):
     rtz=torus.xyz_to_toroid(self.major_radius,0,self.minor_radius,*x)

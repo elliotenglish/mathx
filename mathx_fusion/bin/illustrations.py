@@ -148,7 +148,7 @@ def generate_particle_cylindrical_B_viz():
   generate_particle_viz(field_fn,x0,v0,m,q,"particle_cylindrical_B.html")
 
 def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
-  rand=jax_utilities.Generator(543245)
+  rand=jax_utilities.Generator(432)
 
   #setup field evaluation functions
   def field_fn_rtz(rtz):
@@ -178,18 +178,19 @@ def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
   log.info("computing B")
   surface_B=field_fn_rtz_batch(grid)[0]
 
-  log.info("computing magnetic field lines")
-  field_x0,_=surface_fn_batch(
-    rand.uniform(size=(num_field_lines,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]]))
-  
-  log.info(f"{field_x0=}")
+  if num_field_lines>0:
+    log.info("computing magnetic field lines")
+    field_x0,_=surface_fn_batch(
+      rand.uniform(size=(num_field_lines,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]]))
+    
+    log.info(f"{field_x0=}")
 
-  log.info("integrating")
-  field_lines=get_field_lines(field_fn,field_x0,.01,2000)
+    log.info("integrating")
+    field_lines=get_field_lines(field_fn,field_x0,.01,2000)
 
-  # log.info(f"{surface_x[:10]=}")
-  # log.info(f"{surface_B[:10]=}")
-  log.info(f"{field_lines[:3]}")
+    # log.info(f"{surface_x[:10]=}")
+    # log.info(f"{surface_B[:10]=}")
+    log.info(f"{field_lines[:3]}")
 
   max_vec_ratio=.03
   vec_scale=max_vec_ratio*compute_characteristic_length(surface_x)/compute_vector_length(surface_B)
@@ -200,37 +201,49 @@ def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
   viz.write_visualization(
     [
       viz.generate_mesh3d(mesh=plasma_component.tesselate_surface(64),
-                          color=(255,0,0),opacity=0.2),
-      viz.generate_lines3d(lines=[[field_lines[i][j] for i in range(len(field_lines))] for j in range(field_lines[0].shape[0])],
-                           color=(0,255,0),
-                           markers=False),
+                          color=(255,0,0),opacity=1),
       viz.generate_vectors3d(surface_x.tolist(),(vec_scale*surface_B).tolist(),
-      )#color=(0,255,255))
-    ],
+                            )#color=(0,255,255))
+    ] +
+    (
+      [] if num_field_lines==0 else
+      [ viz.generate_lines3d(lines=[[field_lines[i][j] for i in range(len(field_lines))] for j in range(field_lines[0].shape[0])],
+                            color=(0,255,0),
+                            markers=False),
+
+      ]
+    ),
     f"{name}.magnetic_field.html"
   )
 
   log.info("compute particle trajectories")
-  x0,_=surface_fn_batch(
-    rand.uniform(size=(num_particles,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]]))
-  v0=rand.uniform(size=(num_particles,3),low=-2.,high=2.)
+  if num_particles>1:
+    x0,_=surface_fn_batch(
+      rand.uniform(size=(num_particles,3))*jnp.array([[.8,2*jnp.pi,2*jnp.pi]]))
+    v0=rand.uniform(size=(num_particles,3),low=-1.,high=1.)*.5
+  else:
+    x0,_=surface_fn_batch(jnp.array([[.3,0,0]]))
+    v0=jnp.array([[.5,.5,.5]])
   m=jnp.array([.02]*num_particles)
   q=jnp.array([1]*num_particles)
 
   log.info("integrating")
-  particle_trajectories=get_trajectories(field_fn,x0,v0,m,q,.02,5000)
+  particle_trajectories=get_trajectories(field_fn,x0,v0,m,q,.05,3000)
+  
+  
 
   viz.write_visualization(
     [
       viz.generate_mesh3d(mesh=plasma_component.tesselate_surface(64),
                           opacity=.2),
       viz.generate_lines3d([[d[0][i].tolist() for d in particle_trajectories] for i in range(x0.shape[0])],
-                           (0,0,255))
+                           color=(0,0,255),
+                           markers=False)
     ],
     f"{name}.particle_trace.html")
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
-  generate_particle_plasma_viz("torus",TorusPlasma(4,1.5),1,10)
-  generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1,10)
+  generate_particle_plasma_viz("torus",TorusPlasma(6,1.5),1,0)
+  generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1,0)

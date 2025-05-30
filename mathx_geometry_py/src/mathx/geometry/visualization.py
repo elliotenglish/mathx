@@ -37,7 +37,7 @@ def generate_points3d(pts,color):
     marker_size=3
   )
 
-def generate_vectors3d(pts,vecs,color):
+def generate_vectors3d(pts,vecs,color=None):
   return go.Cone(
     x=[p[0] for p in pts],
     y=[p[1] for p in pts],
@@ -45,24 +45,36 @@ def generate_vectors3d(pts,vecs,color):
     u=[v[0] for v in vecs],
     v=[v[1] for v in vecs],
     w=[v[2] for v in vecs],
-    autocolorscale=False,
+    autocolorscale=True,
     colorscale="jet",
     # colorscale=[(0,color_str(color)),
     #             (1,color_str(color))],
     sizemode="raw",
   )
 
-def generate_lines3d(lines,color):
+def generate_lines3d(lines,color,markers=True):
   x=[[v[d] for l in lines for v in l+[[None]*3]] for d in range(3)]
   return go.Scatter3d(
     x=x[0],
     y=x[1],
     z=x[2],
-    mode="lines+markers",
+    mode="lines+markers" if markers else "lines",
     marker_size=3,
     marker=dict(color=color_str(color)))
 
-def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
+def generate_mesh3d(vtx=None,
+                    tri=None,
+                    mesh=None,
+                    color=(255,0,0),
+                    opacity=1,
+                    flatshading=True,
+                    wireframe=False):
+  if mesh is not None:
+    vtx=mesh[0]
+    tri=mesh[1]
+  assert vtx is not None
+  assert tri is not None
+
   if wireframe:
     edges=set()
     for t in tri:
@@ -103,6 +115,7 @@ def generate_mesh3d(vtx,tri,color,flatshading=True,wireframe=False):
         # name='plasma_surface',
         lighting_specular=1.5,
         color=color_str(color),
+        opacity=opacity,
         flatshading=flatshading,
         # Workaround bug in normals/shading (https://community.plotly.com/t/mesh3d-shading-bug/92247/10)
         lighting=dict(vertexnormalsepsilon=0,

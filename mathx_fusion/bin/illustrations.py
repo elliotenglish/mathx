@@ -229,8 +229,6 @@ def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
 
   log.info("integrating")
   particle_trajectories=get_trajectories(field_fn,x0,v0,m,q,.05,3000)
-  
-  
 
   viz.write_visualization(
     [
@@ -241,6 +239,12 @@ def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
                            markers=False)
     ],
     f"{name}.particle_trace.html")
+
+def generate_equilibriums():
+  
+
+def generate_equilibrium_viz():
+  
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()

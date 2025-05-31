@@ -1,12 +1,14 @@
 import jax
+import desc
 for d in jax.devices():
   if d.platform=="gpu":
-    import desc
     desc.set_device("gpu")
 
-from desc.equilibrium import Equilibrium
-from desc.geometry import FourierRZToroidalSurface
-from desc.profiles import PowerSeriesProfile
+# from desc.equilibrium import Equilibrium
+# from desc.geometry import FourierRZToroidalSurface
+# from desc.profiles import PowerSeriesProfile
+
+
 # from desc.continuation import solve_continuation_automatic
 # from desc.grid import LinearGrid
 # import math
@@ -23,10 +25,76 @@ from mathx.geometry import grid as gridx
 from dataclasses import dataclass
 import functools
 
+# FourierRZToroidalSurface
+# (m,n) - 
+# R(\theta,\phi)=\sum_{m,n\in M}f^R_{m,n} cos(m\theta)cos(n\zeta) where m,n<0: cos->sin
+# Z(\theta,\phi)=... f^Z ...
+
+def torus_surface(major_radius,minor_radius,NFP,max_mode):
+  modes=[(m,n) for m in range(-1,max_mode+1) for n in range(-1,max_mode+1)]
+  return desc.geometry.FourierRZToroidalSurface(
+    R_lmn=[
+      {
+        (0,0):major_radius, #constant radius
+        (1,0):minor_radius #cos(\theta)
+      }.get(mod,0) for mod in modes],
+    modes_R=modes,
+    Z_lmn=[
+      {
+        (-1,0):minor_radius #sin(\theta)
+      }.get(mod,0) for mod in modes],
+    modes_Z=modes,
+    NFP=NFP
+  )
+  
+def get_volume(eq):
+  r=eq.compute("V")
+  return r["V"]
+
+def generate_equilibrium(params):
+  surf = torus_surface(params["major_radius"],
+                       params["minor_radius"],
+                       params["NFP"],
+                       params["max_mode"])
+
+  pressure = desc.profiles.PowerSeriesProfile(
+    [1.8e4, 0, -3.6e4, 0, 1.8e4]
+  )  # coefficients in ascending powers of rho
+  iota = desc.profiles.PowerSeriesProfile([1, 0, 1.5])  # 1 + 1.5 r^2
+
+  eq_init = desc.equilibrium.Equilibrium(
+    L=8,  # radial resolution
+    M=8,  # poloidal resolution
+    N=3,  # toroidal resolution
+    surface=surf,
+    pressure=pressure,
+    iota=iota,
+    Psi=1.0,  # total flux, in Webers
+  )
+  
+  eq_init, info = eq_init.solve() # Find solution with initialized field.
+
+  eq_sol, info = eq_init.solve(
+    objective=desc.objectives.ObjectiveFunction([
+      # desc.objectives.ForceBalance(eq_init),
+      # desc.objectives.Energy(eq_init),
+      # desc.objectives.BoundaryError(eq_init),
+      desc.objectives.Volume(eq_init,target=get_volume(eq_init))
+    ]),
+    constraints=[
+      desc.objectives.FixPressure(eq_init),
+      desc.objectives.ForceBalance(eq_init),
+    ],
+    verbose=3,
+    copy=True
+  )
+
+  return eq_sol
+
 def generate_test_equilibrium():
   log.info("Computing equilibrium")
 
-  surf = FourierRZToroidalSurface(
+  surf = desc.geometry.FourierRZToroidalSurface(
     R_lmn=[10.0, -1.0, -0.3, 0.3],
     modes_R=[
       (0, 0),
@@ -39,12 +107,12 @@ def generate_test_equilibrium():
     NFP=5,
   )
 
-  pressure = PowerSeriesProfile(
+  pressure = desc.profiles.PowerSeriesProfile(
     [1.8e4, 0, -3.6e4, 0, 1.8e4]
   )  # coefficients in ascending powers of rho
-  iota = PowerSeriesProfile([1, 0, 1.5])  # 1 + 1.5 r^2
+  iota = desc.profiles.PowerSeriesProfile([1, 0, 1.5])  # 1 + 1.5 r^2
 
-  eq_init = Equilibrium(
+  eq_init = desc.equilibrium.Equilibrium(
     L=8,  # radial resolution
     M=8,  # poloidal resolution
     N=3,  # toroidal resolution

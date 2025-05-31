@@ -2,8 +2,8 @@ from . import equilibrium
 from .toroidal_plasma import ToroidalPlasma
 
 class StellaratorPlasma(ToroidalPlasma):
-  def __init__(self):
-    self.eq=equilibrium.get_test_equilibrium()
+  def __init__(self,eq=equilibrium.get_test_equilibrium()):
+    self.eq=eq
 
   def get_surface(self,u):
     return equilibrium.get_xyz_basis(self.eq,u)

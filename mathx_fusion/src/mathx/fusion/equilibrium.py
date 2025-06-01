@@ -26,7 +26,7 @@ from dataclasses import dataclass
 import functools
 
 # FourierRZToroidalSurface
-# (m,n) - 
+# (m,n) -
 # R(\theta,\phi)=\sum_{m,n\in M}f^R_{m,n} cos(m\theta)cos(n\zeta) where m,n<0: cos->sin
 # Z(\theta,\phi)=... f^Z ...
 
@@ -37,16 +37,16 @@ def torus_surface(major_radius,minor_radius,NFP,max_mode):
       {
         (0,0):major_radius, #constant radius
         (1,0):minor_radius #cos(\theta)
-      }.get(mod,0) for mod in modes],
+      }.get(mod,1e-3) for mod in modes],
     modes_R=modes,
     Z_lmn=[
       {
         (-1,0):minor_radius #sin(\theta)
-      }.get(mod,0) for mod in modes],
+      }.get(mod,1e-3) for mod in modes],
     modes_Z=modes,
     NFP=NFP
   )
-  
+
 def get_volume(eq):
   r=eq.compute("V")
   return r["V"]
@@ -71,23 +71,40 @@ def generate_equilibrium(params):
     iota=iota,
     Psi=1.0,  # total flux, in Webers
   )
-  
+
   eq_init, info = eq_init.solve() # Find solution with initialized field.
 
-  eq_sol, info = eq_init.solve(
+  init_volume=get_volume(eq_init)
+  print(f"{init_volume=}")
+
+  eq_init_T=eq_init.copy()
+
+  eq_sol, info = eq_init.optimize(
+    optimizer=desc.optimize.Optimizer("proximal-lsq-exact"),
     objective=desc.objectives.ObjectiveFunction([
       # desc.objectives.ForceBalance(eq_init),
+      # desc.objectives.FusionPower(eq_init),
       # desc.objectives.Energy(eq_init),
       # desc.objectives.BoundaryError(eq_init),
-      desc.objectives.Volume(eq_init,target=get_volume(eq_init))
+      # desc.objectives.Volume(eq_init,target=get_volume(eq_init))
+      # desc.objectives.Volume(eq_init),
+      desc.objectives.AspectRatio(eq=eq_init_T, target=4, weight=1e1, normalize=False),
     ]),
     constraints=[
-      desc.objectives.FixPressure(eq_init),
-      desc.objectives.ForceBalance(eq_init),
+      desc.objectives.ForceBalance(eq=eq_init_T),
+      desc.objectives.FixPressure(eq=eq_init_T),
     ],
-    verbose=3,
-    copy=True
+    verbose=5,
+    copy=True,
+    options={
+      "initial_trust_radius": 0.5,
+      "perturb_options": {"verbose": 0},
+      "solve_options": {"verbose": 0},
+    },
   )
+
+  solution_volume=get_volume(eq_init)
+  print(f"{solution_volume=}")
 
   return eq_sol
 
@@ -301,7 +318,7 @@ def get_B_helper(eq,u):
 
   # B=r["B"]
   # B=jax.vmap(gridx.convert_cylindrical_to_cartesian,in_axes=(0,0),out_axes=(0))(rpz,B)
-  
+
   r=eq.compute(["B^rho","B^theta","B^zeta"],
                grid,
                override_grid=False)

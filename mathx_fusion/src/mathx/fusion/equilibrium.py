@@ -30,19 +30,19 @@ import functools
 # R(\theta,\phi)=\sum_{m,n\in M}f^R_{m,n} cos(m\theta)cos(n\zeta) where m,n<0: cos->sin
 # Z(\theta,\phi)=... f^Z ...
 
-def torus_surface(major_radius,minor_radius,NFP,max_mode):
+def torus_surface(major_radius,minor_radius,NFP,max_mode,epsilon=1e-3):
   modes=[(m,n) for m in range(-1,max_mode+1) for n in range(-1,max_mode+1)]
   return desc.geometry.FourierRZToroidalSurface(
     R_lmn=[
       {
         (0,0):major_radius, #constant radius
         (1,0):minor_radius #cos(\theta)
-      }.get(mod,1e-3) for mod in modes],
+      }.get(mod,epsilon if mod[0]>=0 else -epsilon) for mod in modes],
     modes_R=modes,
     Z_lmn=[
       {
         (-1,0):minor_radius #sin(\theta)
-      }.get(mod,1e-3) for mod in modes],
+      }.get(mod,epsilon if mod[0]>=0 else -epsilon) for mod in modes],
     modes_Z=modes,
     NFP=NFP
   )
@@ -72,7 +72,8 @@ def generate_equilibrium(params):
     Psi=1.0,  # total flux, in Webers
   )
 
-  eq_init, info = eq_init.solve() # Find solution with initialized field.
+  # eq_init, info = eq_init.solve() # Find solution with initialized field.
+  # eq_init = desc.continuation.solve_continuation_automatic(eq_init,verbose=3)
 
   init_volume=get_volume(eq_init)
   print(f"{init_volume=}")
@@ -87,20 +88,24 @@ def generate_equilibrium(params):
       # desc.objectives.Energy(eq_init),
       # desc.objectives.BoundaryError(eq_init),
       # desc.objectives.Volume(eq_init,target=get_volume(eq_init))
-      # desc.objectives.Volume(eq_init),
-      desc.objectives.AspectRatio(eq=eq_init_T, target=4, weight=1e1, normalize=False),
+      desc.objectives.Volume(eq_init,target=init_volume),
+      desc.objectives.AspectRatio(eq=eq_init, target=4, weight=1e1, normalize=False),
+      desc.objectives.ForceBalance(eq=eq_init,weight=10),
+      # desc.objectives.FixPressure(eq=eq_init),
     ]),
     constraints=[
-      desc.objectives.ForceBalance(eq=eq_init_T),
-      desc.objectives.FixPressure(eq=eq_init_T),
     ],
-    verbose=5,
+    verbose=3,
     copy=True,
     options={
       "initial_trust_radius": 0.5,
-      "perturb_options": {"verbose": 0},
-      "solve_options": {"verbose": 0},
+      # "perturb_options": {"verbose": 0},
+      # "solve_options": {"verbose": 0},
     },
+    ftol=1e-10,
+    xtol=1e-10,
+    gtol=1e-10,
+    maxiter=1000
   )
 
   solution_volume=get_volume(eq_init)

@@ -222,7 +222,8 @@ class Curvilinear:
       p=np.array([0.5]*self.D)
 
       us=.5*jnp.ones([num_steps,2])
-      us=jnp.concatenate([us[:,:d],jnp.linspace(0,1,num_steps)[:,None],us[:,d:]],axis=1)
+      u_steps=jnp.linspace(0,1,num_steps,endpoint=False if self.closed[d] else True)
+      us=jnp.concatenate([us[:,:d],u_steps[:,None],us[:,d:]],axis=1)
       # log.info(f"density {us=}")
       xs=self.batch_pos_fn(us)
 
@@ -237,9 +238,9 @@ class Curvilinear:
 
       # Angle calculation
       a=0
-      for i in range(num_steps-(1 if self.closed[d] else 2)):
-        dx1=xs[(i+2)%num_steps]-xs[i+1]
-        dx0=xs[i+1]-xs[i]
+      for i in range(num_steps-(0 if self.closed[d] else 1)):
+        dx1=xs[(i+2)%num_steps]-xs[(i+1)%num_steps]
+        dx0=xs[(i+1)%num_steps]-xs[i]
         da=jnp.acos(jnp.minimum(1,(dx1 @ dx0)/(jnp.linalg.norm(dx1)*jnp.linalg.norm(dx0))))
         if jnp.isnan(da).any():
           import pdb

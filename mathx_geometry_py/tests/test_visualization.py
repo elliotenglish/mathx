@@ -12,9 +12,9 @@ def test_visualization():
         vtx=[[2,3,4]],
         color=(0,0,255)
       ),
-      viz.generate_cone3d(
-        pos=[[-2,-1,2]],
-        vec=[[.2,.1,-.3]]
+      viz.generate_vectors3d(
+        pts=[[-2,-1,2]],
+        vecs=[[.2,.1,-.3]]
       )
     ],
     "viz.html")

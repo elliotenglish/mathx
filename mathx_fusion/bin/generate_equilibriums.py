@@ -38,9 +38,9 @@ if __name__=="__main__":
 
   params={
     "major_radius":8,
-    "minor_radius":1.5,
-    "NFP":3,
-    "max_mode":1
+    "minor_radius":1,
+    "NFP":5,
+    "max_mode":4
   }
 
   plasma=spx.StellaratorPlasma(eqx.generate_equilibrium(params))

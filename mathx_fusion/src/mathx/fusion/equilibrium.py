@@ -41,7 +41,7 @@ def torus_surface(major_radius,minor_radius,NFP,max_mode,epsilon=1e-3):
     modes_R=modes,
     Z_lmn=[
       {
-        (-1,0):minor_radius #sin(\theta)
+        (-1,0):-minor_radius #sin(\theta)
       }.get(mod,epsilon if mod[0]>=0 else -epsilon) for mod in modes],
     modes_Z=modes,
     NFP=NFP
@@ -57,10 +57,34 @@ def generate_equilibrium(params):
                        params["NFP"],
                        params["max_mode"])
 
-  pressure = desc.profiles.PowerSeriesProfile(
-    [1.8e4, 0, -3.6e4, 0, 1.8e4]
-  )  # coefficients in ascending powers of rho
-  iota = desc.profiles.PowerSeriesProfile([1, 0, 1.5])  # 1 + 1.5 r^2
+  # pressure = desc.profiles.PowerSeriesProfile(
+  #   [1.8e4, 0, -3.6e4, 0, 1.8e4]
+  # )  # coefficients in ascending powers of rho
+  # iota = desc.profiles.PowerSeriesProfile([1, 0, 1.5])  # 1 + 1.5 r^2
+  
+  # From https://github.com/PlasmaControl/DESC/blob/master/desc/examples/W7-X
+  pressure=desc.profiles.PowerSeriesProfile(
+    [
+      1.85596929e+05,
+      0,
+      -3.71193859e+05,
+      0,
+      1.85596929e+05,
+      0,
+      0
+    ])
+  iota=desc.profiles.PowerSeriesProfile(
+    [
+      -8.56047021e-01,
+      0,
+      -3.88095412e-02,
+      0,
+      -6.86795128e-02,
+      0,
+      -1.86970315e-02,
+      0,
+      1.90561179e-02
+    ])
 
   eq_init = desc.equilibrium.Equilibrium(
     L=8,  # radial resolution
@@ -71,6 +95,9 @@ def generate_equilibrium(params):
     iota=iota,
     Psi=1.0,  # total flux, in Webers
   )
+  
+  desc.plotting.plot_1d(eq_init,"p")[0].savefig("p.init.png")
+  desc.plotting.plot_1d(eq_init,"iota")[0].savefig("iota.init.png")
 
   # eq_init, info = eq_init.solve() # Find solution with initialized field.
   # eq_init = desc.continuation.solve_continuation_automatic(eq_init,verbose=3)
@@ -83,26 +110,29 @@ def generate_equilibrium(params):
   # eq_sol, info = eq_init.optimize(
   eq_sol, info = eq_init.solve(
     optimizer=desc.optimize.Optimizer(
-      "lsq-exact"
+      # "lsq-exact"
       # "proximal-lsq-exact"
+      # "lsq-auglag"
+      "proximal-lsq-auglag"
+      # "fmin-auglag-bfgs"
       # "scipy-bfgs"
       # "fmintr-bfgs"
       # "sgd"
     ),
     objective=desc.objectives.ObjectiveFunction([
       # desc.objectives.ForceBalance(eq_init),
-      # desc.objectives.FusionPower(eq_init),
+      # desc.objectives.FusionPower(eq_init,fuel="DT"),
       # desc.objectives.Energy(eq_init),
       # desc.objectives.BoundaryError(eq_init),
       # desc.objectives.Volume(eq_init,target=get_volume(eq_init))
       # desc.objectives.Volume(eq_init,
       #                        target=init_volume),
-      desc.objectives.Elongation(eq_init,
-                                 target=2,
-                                 weight=1e0),
-      desc.objectives.AspectRatio(eq=eq_init,
-                                  target=4,
-                                  weight=1e-1),
+      # desc.objectives.Elongation(eq_init,
+      #                            target=10,
+      #                            weight=1e0),
+      # desc.objectives.AspectRatio(eq=eq_init,
+      #                             target=4,
+      #                             weight=1e-1),
       # desc.objectives.ForceBalance(eq=eq_init,
       #                              weight=1e6),
       # desc.objectives.Pressure(eq=eq_init,
@@ -110,7 +140,7 @@ def generate_equilibrium(params):
       # desc.objectives.RotationalTransform(eq=eq_init),
       # desc.objectives.MercierStability(eq=eq_init,
       #                                  target=1,
-      #                                  weight=1e-2),
+      #                                  weight=1e-1),
       desc.objectives.MagneticWell(eq=eq_init,
                                    target=1,
                                    weight=1e-1),

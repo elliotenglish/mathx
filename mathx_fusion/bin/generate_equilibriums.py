@@ -7,27 +7,28 @@ from mathx.geometry import visualization as viz
 from mathx.core import log
 import argparse
 
-def visualize(eq,prefix="",open=False):
-  import desc
-  desc.plotting.plot_1d(eq,"p")[0].savefig(f"{prefix}p.png")
-  desc.plotting.plot_1d(eq,"ni")[0].savefig(f"{prefix}ni.png")
-  desc.plotting.plot_1d(eq,"iota")[0].savefig(f"{prefix}iota.png")
+def visualize(plasma,prefix="",open=False):
+  if isinstance(plasma,spx.StellaratorPlasma):
+    import desc
+    desc.plotting.plot_1d(plasma.eq,"p")[0].savefig(f"{prefix}p.png")
+    desc.plotting.plot_1d(plasma.eq,"ni")[0].savefig(f"{prefix}ni.png")
+    desc.plotting.plot_1d(plasma.eq,"iota")[0].savefig(f"{prefix}iota.png")
 
-  comp=reactx.PlasmaSurface(eq,1)
-  eq_path=f"{prefix}eq.html"
+  comp=reactx.PlasmaSurface(plasma,1)
+  surf_path=f"{prefix}surface.html"
   viz.write_visualization(
     [
       viz.generate_mesh3d(
         mesh=comp.tesselate_surface(64),
         opacity=1)
     ],
-    eq_path
+    surf_path
   )
 
   if open:
     import os
-    # os.system(f"open {eq_path}")    
-    os.system(f"google-chrome --new-window {eq_path}")
+    # os.system(f"open {surf_path}")
+    os.system(f"google-chrome --new-window {surf_path}")
 
 if __name__=="__main__":
   parser=argparse.ArgumentParser()

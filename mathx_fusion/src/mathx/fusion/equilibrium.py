@@ -95,27 +95,30 @@ def generate_equilibrium(params):
       # desc.objectives.Energy(eq_init),
       # desc.objectives.BoundaryError(eq_init),
       # desc.objectives.Volume(eq_init,target=get_volume(eq_init))
-      desc.objectives.Volume(eq_init,
-                             target=init_volume),
+      # desc.objectives.Volume(eq_init,
+      #                        target=init_volume),
       desc.objectives.Elongation(eq_init,
                                  target=2,
-                                 weight=1e-2),
+                                 weight=1e0),
       desc.objectives.AspectRatio(eq=eq_init,
                                   target=4,
-                                  weight=1e-2),
-      desc.objectives.ForceBalance(eq=eq_init,
-                                   weight=1e5),
-      desc.objectives.Pressure(eq=eq_init),
-      desc.objectives.RotationalTransform(eq=eq_init),
+                                  weight=1e-1),
+      # desc.objectives.ForceBalance(eq=eq_init,
+      #                              weight=1e6),
+      # desc.objectives.Pressure(eq=eq_init,
+      #                          weight=1e2),
+      # desc.objectives.RotationalTransform(eq=eq_init),
       # desc.objectives.MercierStability(eq=eq_init,
       #                                  target=1,
       #                                  weight=1e-2),
       desc.objectives.MagneticWell(eq=eq_init,
                                    target=1,
-                                   weight=5e-2),
+                                   weight=1e-1),
     ]),
     constraints=[
-      # desc.objectives.ForceBalance(eq=eq_init),
+      desc.objectives.ForceBalance(eq=eq_init),
+      desc.objectives.FixPressure(eq=eq_init),
+      desc.objectives.FixIota(eq=eq_init)
     ],
     verbose=3,
     copy=True,
@@ -127,7 +130,7 @@ def generate_equilibrium(params):
     ftol=1e-10,
     xtol=1e-10,
     gtol=1e-10,
-    maxiter=100
+    maxiter=200
   )
 
   solution_volume=get_volume(eq_init)

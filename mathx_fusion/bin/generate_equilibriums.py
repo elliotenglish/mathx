@@ -7,20 +7,27 @@ from mathx.geometry import visualization as viz
 from mathx.core import log
 import argparse
 
-def visualize(eq,path="eq.html",open=False):
+def visualize(eq,prefix="",open=False):
+  import desc
+  desc.plotting.plot_1d(eq,"p")[0].savefig(f"{prefix}p.png")
+  desc.plotting.plot_1d(eq,"ni")[0].savefig(f"{prefix}ni.png")
+  desc.plotting.plot_1d(eq,"iota")[0].savefig(f"{prefix}iota.png")
+
   comp=reactx.PlasmaSurface(eq,1)
+  eq_path=f"{prefix}eq.html"
   viz.write_visualization(
     [
       viz.generate_mesh3d(
         mesh=comp.tesselate_surface(64),
         opacity=1)
     ],
-    path
+    eq_path
   )
+
   if open:
     import os
-    # os.system(f"open {path}")    
-    os.system(f"google-chrome --new-window {path}")
+    # os.system(f"open {eq_path}")    
+    os.system(f"google-chrome --new-window {eq_path}")
 
 if __name__=="__main__":
   parser=argparse.ArgumentParser()
@@ -36,4 +43,4 @@ if __name__=="__main__":
   }
 
   plasma=spx.StellaratorPlasma(eqx.generate_equilibrium(params))
-  visualize(plasma,path="eq.html",open=True)
+  visualize(plasma,open=True)

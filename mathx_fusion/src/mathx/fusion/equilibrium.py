@@ -78,34 +78,56 @@ def generate_equilibrium(params):
   init_volume=get_volume(eq_init)
   print(f"{init_volume=}")
 
-  eq_init_T=eq_init.copy()
+  # eq_init_T=eq_init.copy()
 
-  eq_sol, info = eq_init.optimize(
-    optimizer=desc.optimize.Optimizer("proximal-lsq-exact"),
+  # eq_sol, info = eq_init.optimize(
+  eq_sol, info = eq_init.solve(
+    optimizer=desc.optimize.Optimizer(
+      "lsq-exact"
+      # "proximal-lsq-exact"
+      # "scipy-bfgs"
+      # "fmintr-bfgs"
+      # "sgd"
+    ),
     objective=desc.objectives.ObjectiveFunction([
       # desc.objectives.ForceBalance(eq_init),
       # desc.objectives.FusionPower(eq_init),
       # desc.objectives.Energy(eq_init),
       # desc.objectives.BoundaryError(eq_init),
       # desc.objectives.Volume(eq_init,target=get_volume(eq_init))
-      desc.objectives.Volume(eq_init,target=init_volume),
-      desc.objectives.AspectRatio(eq=eq_init, target=4, weight=1e1, normalize=False),
-      desc.objectives.ForceBalance(eq=eq_init,weight=10),
-      # desc.objectives.FixPressure(eq=eq_init),
+      desc.objectives.Volume(eq_init,
+                             target=init_volume),
+      desc.objectives.Elongation(eq_init,
+                                 target=2,
+                                 weight=1e-2),
+      desc.objectives.AspectRatio(eq=eq_init,
+                                  target=4,
+                                  weight=1e-2),
+      desc.objectives.ForceBalance(eq=eq_init,
+                                   weight=1e5),
+      desc.objectives.Pressure(eq=eq_init),
+      desc.objectives.RotationalTransform(eq=eq_init),
+      # desc.objectives.MercierStability(eq=eq_init,
+      #                                  target=1,
+      #                                  weight=1e-2),
+      desc.objectives.MagneticWell(eq=eq_init,
+                                   target=1,
+                                   weight=5e-2),
     ]),
     constraints=[
+      # desc.objectives.ForceBalance(eq=eq_init),
     ],
     verbose=3,
     copy=True,
-    options={
-      "initial_trust_radius": 0.5,
-      # "perturb_options": {"verbose": 0},
-      # "solve_options": {"verbose": 0},
-    },
+    # options={
+    #   "initial_trust_radius": 0.5,
+    #   # "perturb_options": {"verbose": 0},
+    #   # "solve_options": {"verbose": 0},
+    # },
     ftol=1e-10,
     xtol=1e-10,
     gtol=1e-10,
-    maxiter=1000
+    maxiter=100
   )
 
   solution_volume=get_volume(eq_init)

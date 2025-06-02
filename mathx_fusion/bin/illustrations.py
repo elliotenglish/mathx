@@ -8,6 +8,7 @@ from mathx.core import log
 from mathx.core import jax_utilities
 from mathx.fusion.torus_plasma import TorusPlasma
 from mathx.fusion.stellarator_plasma import StellaratorPlasma
+from mathx.fusion import equilibrium as eqx
 from mathx.fusion import reactor as freact
 
 def compute_bounds(x):
@@ -240,14 +241,17 @@ def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
     ],
     f"{name}.particle_trace.html")
 
-def generate_equilibriums():
-  
-
-def generate_equilibrium_viz():
-  
+def generate_profiles():
+  eq=eqx.get_test_equilibrium()
+  import desc
+  desc.plotting.plot_1d(eq,"p")[0].savefig("p.png")
+  desc.plotting.plot_1d(eq,"ni")[0].savefig("ni.png")
+  desc.plotting.plot_1d(eq,"iota")[0].savefig("iota.png")
+  # desc.plotting.plot_1d(eq,"ne")[0].savefig("ne.png")
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
-  generate_particle_plasma_viz("torus",TorusPlasma(6,1.5),1,0)
-  generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1,0)
+  # generate_particle_plasma_viz("torus",TorusPlasma(6,1.5),1,0)
+  # generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1,0)
+  generate_profiles()

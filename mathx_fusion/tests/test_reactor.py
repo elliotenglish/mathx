@@ -17,18 +17,25 @@ def clip_mesh(mesh):
   tris=[[vmap[vi] for vi in t] for t in mesh[1] if all([vi in vmap for vi in t])]
   return verts,tris
 
-def reactor_test_helper(plasma):
+def reactor_test_helper(plasma,prefix=""):
   rand=np.random.default_rng(54323)
   
   log.info("creating reactor")
-  reactor=freact.Reactor(plasma,params=freact.ReactorParameters())
+  params=freact.ReactorParameters(
+    wall_thickness=.2,
+    magnet_width=.2,
+    magnet_height=.2,
+    num_magnets=16,
+    num_supports=0,
+  )
+  reactor=freact.Reactor(plasma,params=params)
 
   log.info("generating component meshes")
   components=reactor.generate()
   for i,c in enumerate(components):
     log.info(f"component {i} vtx={len(c[0])} tri={len(c[1])}")
     
-  components=[clip_mesh(c) for c in components]
+  # components=[clip_mesh(c) for c in components]
 
   path="reactor.html"
   log.info(f"generating visualization")
@@ -43,14 +50,14 @@ def reactor_test_helper(plasma):
   log.info(f"writing visualization output={path}")
   viz.write_visualization(
     viz_els,
-    "reactor.html"
+    f"{prefix}reactor.html"
   )
   
-def test_reactor_torus()
-  reactor_test_helper("torus",ftplasma.TorusPlasma(10,4))
+def test_reactor_torus():
+  reactor_test_helper(ftplasma.TorusPlasma(10,4),"torus.")
 
-def test_reactor_stellarator()
-  reactor_test_helper("stellarator",fsplasma.StellaratorPlasma())
+def test_reactor_stellarator():
+  reactor_test_helper(fsplasma.StellaratorPlasma(),"stellarator.")
 
 if __name__=="__main__":
   test_reactor_torus()

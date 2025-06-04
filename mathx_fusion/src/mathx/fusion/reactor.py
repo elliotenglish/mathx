@@ -56,10 +56,11 @@ def Support(structure_fn,uc,ground_level,width):
 
 @dataclass
 class ReactorParameters:
-  wall_thickness: float = .2
-  magnet_width: float =.2
-  magnet_height: float = .2
-  num_supports: int = 24
+  wall_thickness: float
+  magnet_width: float
+  magnet_height: float
+  num_magnets: int
+  num_supports: int
   # primary_chamber: Torus.Parameters
   # magnets: list[Magnet.Parameters]
   # heating_ports: list[Port.Parameters]
@@ -68,29 +69,29 @@ class ReactorParameters:
 
 class Reactor:
   # @functools.partial(jax.jit,static_argnums=(0,))
-  def plasma_fn(self,u):
-    def pure_callback(u):
-      us=u[None,:] if len(u.shape)==1 else u
-      xs,bs=equilibrium.get_xyz_basis(self.plasma_equilibrium,us)
-      xs,bs=(xs[0],bs[0]) if len(u.shape)==1 else (xs,bs)
-      return xs,bs
+  # def plasma_fn(self,u):
+  #   def pure_callback(u):
+  #     us=u[None,:] if len(u.shape)==1 else u
+  #     xs,bs=equilibrium.get_xyz_basis(self.plasma_equilibrium,us)
+  #     xs,bs=(xs[0],bs[0]) if len(u.shape)==1 else (xs,bs)
+  #     return xs,bs
 
-    x,b=jax.pure_callback(pure_callback,
-                          (jax.ShapeDtypeStruct((3,),u.dtype),
-                           jax.ShapeDtypeStruct((3,3),u.dtype)),
-                          u,
-                          vmap_method="expand_dims")
-    return x,b
+  #   x,b=jax.pure_callback(pure_callback,
+  #                         (jax.ShapeDtypeStruct((3,),u.dtype),
+  #                          jax.ShapeDtypeStruct((3,3),u.dtype)),
+  #                         u,
+  #                         vmap_method="expand_dims")
+  #   return x,b
 
   # @functools.partial(jax.jit,static_argnums=(0,))
   def structure_fn_plasma(self,u):
-    up=jnp.array([u[0],u[1],1])
-
-    # import pdb
-    # pdb.set_trace()
-
-    x,b=self.plasma.get_surface(u)
+    up=jnp.array([1,u[0]*2*jnp.pi,u[1]*2*jnp.pi])
+    # jax.debug.print("up={up}",up=up)
+    x,b=self.plasma.get_surface(up)
+    # jax.debug.print("b={b}",b=b)
+    b=b[:,::-1]*jnp.array([1./(2*jnp.pi),1./(2*jnp.pi),1./(2*jnp.pi)])[None,...]
     n=-jnp.cross(b[:,0],b[:,1])
+    # jax.debug.print("n={n}",n=n)
     n=n/jnp.linalg.norm(n)
     x=x+u[2]*n
 
@@ -99,7 +100,6 @@ class Reactor:
   def __init__(self, plasma, params: ReactorParameters):
     params.wall_thickness=0.2
     self.plasma=plasma
-    self.plasma_surface=PlasmaSurface(self.plasma,1)
 
     self.structure_fn=self.structure_fn_plasma
 
@@ -121,7 +121,7 @@ class Reactor:
 
     ###################################
     # Plasma
-    self.plasma=PlasmaSurface(self.plasma,1)
+    self.plasma_surface=PlasmaSurface(self.plasma,1)
 
     ###################################
     # Plasma chamber
@@ -139,8 +139,7 @@ class Reactor:
 
     ###################################
     # Magnets
-    num_magnets=32
-    magnet_phi=jnp.linspace(0,1,num_magnets,endpoint=False)
+    magnet_phi=jnp.linspace(0,1,params.num_magnets,endpoint=False)
     # log.info(f"{magnet_phi=}")
     self.magnets=[
       RingMagnet(self.structure_fn_offset,phi,.2,.2)
@@ -151,6 +150,7 @@ class Reactor:
     # Supports
     rand=np.random.default_rng(54323)
 
+    log.info("generating supports")
     self.supports=[]
     # while len(self.supports)<params.num_supports:
     for phi in np.linspace(0,1,params.num_supports,endpoint=False):
@@ -168,7 +168,7 @@ class Reactor:
     # Components
     self.components=(
       [
-        self.plasma,
+        self.plasma_surface,
         self.plasma_chamber
       ] +
       self.magnets +

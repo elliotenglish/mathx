@@ -248,10 +248,14 @@ def generate_profiles():
   desc.plotting.plot_1d(eq,"ni")[0].savefig("ni.png")
   desc.plotting.plot_1d(eq,"iota")[0].savefig("iota.png")
   # desc.plotting.plot_1d(eq,"ne")[0].savefig("ne.png")
+  
+def generate_magnet_viz():
+  pass
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
   # generate_particle_plasma_viz("torus",TorusPlasma(6,1.5),1,0)
   # generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1,0)
-  generate_profiles()
+  # generate_profiles()
+  generate_magnet_viz()

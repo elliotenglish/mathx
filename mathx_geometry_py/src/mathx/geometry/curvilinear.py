@@ -238,10 +238,10 @@ class Curvilinear:
 
       # Angle calculation
       a=0
-      for i in range(num_steps-(0 if self.closed[d] else 1)):
+      for i in range(num_steps-(0 if self.closed[d] else 2)):
         dx1=xs[(i+2)%num_steps]-xs[(i+1)%num_steps]
         dx0=xs[(i+1)%num_steps]-xs[i]
-        da=jnp.acos(jnp.minimum(1,(dx1 @ dx0)/(jnp.linalg.norm(dx1)*jnp.linalg.norm(dx0))))
+        da=jnp.acos(jnp.clip((dx1 @ dx0)/(jnp.linalg.norm(dx1)*jnp.linalg.norm(dx0)),min=-1,max=1))
         if jnp.isnan(da).any():
           import pdb
           pdb.set_trace()

@@ -30,8 +30,8 @@ import functools
 # R(\theta,\phi)=\sum_{m,n\in M}f^R_{m,n} cos(m\theta)cos(n\zeta) where m,n<0: cos->sin
 # Z(\theta,\phi)=... f^Z ...
 
-def torus_surface(major_radius,minor_radius,NFP,max_mode,epsilon=1e-3):
-  modes=[(m,n) for m in range(-1,max_mode+1) for n in range(-1,max_mode+1)]
+def torus_surface(major_radius,minor_radius,NFP,mode_max,epsilon=1e-3):
+  modes=[(m,n) for m in range(-1,mode_max+1) for n in range(-1,mode_max+1)]
   return desc.geometry.FourierRZToroidalSurface(
     R_lmn=[
       {
@@ -46,45 +46,80 @@ def torus_surface(major_radius,minor_radius,NFP,max_mode,epsilon=1e-3):
     modes_Z=modes,
     NFP=NFP
   )
+  
+def twisted_surface(NFP):
+  return desc.geometry.FourierRZToroidalSurface(
+    R_lmn=[10.0, -1.0, -0.3, 0.3],
+    modes_R=[
+      (0, 0),
+      (1, 0),
+      (1, 1),
+      (-1, -1),
+    ],  # (m,n) pairs corresponding to R_mn on previous line
+    Z_lmn=[1, -0.3, -0.3],
+    modes_Z=[(-1, 0), (-1, 1), (1, -1)],
+    NFP=NFP,
+  )
 
 def get_volume(eq):
   r=eq.compute("V")
   return r["V"]
 
-def generate_equilibrium(params):
-  surf = torus_surface(params["major_radius"],
-                       params["minor_radius"],
-                       params["NFP"],
-                       params["max_mode"])
+@dataclass
+class EquilibriumParameters:
+  optimizer: str
+  maxiter: int
+  major_radius: float
+  minor_radius: float
+  NFP: int
+  mode_max: int
+  pressure_core: float
+  iota_edge: float
+  force_balance_weight: float
+  quasisymmetry_two_term_weight: float
+  quasisymmetry_triple_product_weight: float
+  magnetic_well_weight: float
 
-  # pressure = desc.profiles.PowerSeriesProfile(
-  #   [1.8e4, 0, -3.6e4, 0, 1.8e4]
-  # )  # coefficients in ascending powers of rho
-  # iota = desc.profiles.PowerSeriesProfile([1, 0, 1.5])  # 1 + 1.5 r^2
+def generate_equilibrium(
+  params: EquilibriumParameters):
+
+  log.info(f"{params=}")
+
+  surf = torus_surface(params.major_radius,
+                       params.minor_radius,
+                       params.NFP,
+                       params.mode_max)
+  # surf = twisted_surface(params.NFP.)
+
+  pressure = desc.profiles.PowerSeriesProfile(
+    # [1.8e4, 0, -3.6e4, 0, 1.8e4]
+    [params.pressure_core, 0, -2*params.pressure_core, 0, params.pressure_core]
+  )  # coefficients in ascending powers of rho
+  iota = desc.profiles.PowerSeriesProfile([1, 0, params.iota_edge])  # 1 + 1.5 r^2
   
   # From https://github.com/PlasmaControl/DESC/blob/master/desc/examples/W7-X
-  pressure=desc.profiles.PowerSeriesProfile(
-    [
-      1.85596929e+05,
-      0,
-      -3.71193859e+05,
-      0,
-      1.85596929e+05,
-      0,
-      0
-    ])
-  iota=desc.profiles.PowerSeriesProfile(
-    [
-      -8.56047021e-01,
-      0,
-      -3.88095412e-02,
-      0,
-      -6.86795128e-02,
-      0,
-      -1.86970315e-02,
-      0,
-      1.90561179e-02
-    ])
+  # pressure=desc.profiles.PowerSeriesProfile(
+  #   [
+  #     1.85596929e+05,
+  #     0,
+  #     -3.71193859e+05,
+  #     0,
+  #     1.85596929e+05,
+  #     0,
+  #     0
+  #   ])
+  # iota=desc.profiles.PowerSeriesProfile(
+  #   [
+  #     -8.56047021e-01,
+  #     0,
+  #     -3.88095412e-02,
+  #     0,
+  #     -6.86795128e-02,
+  #     0,
+  #     -1.86970315e-02,
+  #     0,
+  #     1.90561179e-02
+  #   ])
 
   eq_init = desc.equilibrium.Equilibrium(
     L=8,  # radial resolution
@@ -104,63 +139,84 @@ def generate_equilibrium(params):
 
   init_volume=get_volume(eq_init)
   print(f"{init_volume=}")
-
-  # eq_init_T=eq_init.copy()
+  
+  objectives=[
+    # desc.objectives.ForceBalance(eq_init),
+    # desc.objectives.FusionPower(eq_init,fuel="DT"),
+    # desc.objectives.Energy(eq_init),
+    # desc.objectives.BoundaryError(eq_init),
+    # desc.objectives.Volume(eq_init,target=get_volume(eq_init))
+    # desc.objectives.Volume(eq_init,
+    #                        target=init_volume),
+    # desc.objectives.Elongation(eq_init,
+    #                            bounds=(2,4),
+    #                            weight=1),
+    # desc.objectives.AspectRatio(eq=eq_init,
+    #                             target=4,
+    #                             weight=1),
+    # desc.objectives.ForceBalance(eq=eq_init,
+    #                              weight=1e6),
+    # desc.objectives.Pressure(eq=eq_init,
+    #                          weight=1e2),
+    # desc.objectives.RotationalTransform(eq=eq_init),
+    # desc.objectives.MercierStability(eq=eq_init,
+    #                                  target=1,
+    #                                  weight=1e-1),
+  ]
+  if params.quasisymmetry_two_term_weight>0:
+    objectives+=[
+      desc.objectives.QuasisymmetryTwoTerm(eq_init,
+                                           weight=params.quasisymmetry_two_term_weight,
+                                           normalize=False,
+                                           helicity=(1, eq_init.NFP))]
+  if params.quasisymmetry_triple_product_weight>0:
+    objectives+=[
+      desc.objectives.QuasisymmetryTripleProduct(eq_init,
+                                                 weight=params.quasisymmetry_triple_product_weight,
+                                                 normalize=False)]
+  if params.magnetic_well_weight>0:
+    objectives+=[
+      desc.objectives.MagneticWell(eq=eq_init,
+                                   bounds=(1,10),
+                                   weight=params.magnetic_well_weight)]
 
   # eq_sol, info = eq_init.optimize(
   eq_sol, info = eq_init.solve(
     optimizer=desc.optimize.Optimizer(
-      # "lsq-exact"
-      # "proximal-lsq-exact"
-      # "lsq-auglag"
-      "proximal-lsq-auglag"
-      # "fmin-auglag-bfgs"
-      # "scipy-bfgs"
-      # "fmintr-bfgs"
-      # "sgd"
+      # "lsq-exact",
+      # "proximal-lsq-exact",
+      # "lsq-auglag",
+      # "proximal-lsq-auglag",
+      # "fmin-auglag-bfgs",
+      # "scipy-bfgs",
+      # "fmintr-bfgs",
+      # "sgd",
+      params.optimizer
     ),
-    objective=desc.objectives.ObjectiveFunction([
-      # desc.objectives.ForceBalance(eq_init),
-      # desc.objectives.FusionPower(eq_init,fuel="DT"),
-      # desc.objectives.Energy(eq_init),
-      # desc.objectives.BoundaryError(eq_init),
-      # desc.objectives.Volume(eq_init,target=get_volume(eq_init))
-      # desc.objectives.Volume(eq_init,
-      #                        target=init_volume),
-      # desc.objectives.Elongation(eq_init,
-      #                            target=10,
-      #                            weight=1e0),
-      # desc.objectives.AspectRatio(eq=eq_init,
-      #                             target=4,
-      #                             weight=1e-1),
-      # desc.objectives.ForceBalance(eq=eq_init,
-      #                              weight=1e6),
-      # desc.objectives.Pressure(eq=eq_init,
-      #                          weight=1e2),
-      # desc.objectives.RotationalTransform(eq=eq_init),
-      # desc.objectives.MercierStability(eq=eq_init,
-      #                                  target=1,
-      #                                  weight=1e-1),
-      desc.objectives.MagneticWell(eq=eq_init,
-                                   target=1,
-                                   weight=1e-1),
-    ]),
+    objective=desc.objectives.ObjectiveFunction(objectives),
     constraints=[
-      desc.objectives.ForceBalance(eq=eq_init),
+      desc.objectives.ForceBalance(eq=eq_init,
+                                   normalize=False,
+                                   weight=params.force_balance_weight),
       desc.objectives.FixPressure(eq=eq_init),
-      desc.objectives.FixIota(eq=eq_init)
+      desc.objectives.FixIota(eq=eq_init),
+      desc.objectives.FixPsi(eq=eq_init),
     ],
     verbose=3,
     copy=True,
-    # options={
-    #   "initial_trust_radius": 0.5,
-    #   # "perturb_options": {"verbose": 0},
-    #   # "solve_options": {"verbose": 0},
-    # },
+    options={
+      # Sometimes the default initial trust radius is too big, allowing the
+      # optimizer to take too large a step in a bad direction. If this happens,
+      # we can manually specify a smaller starting radius. Each optimizer has a
+      # number of different options that can be used to tune the performance.
+      # See the documentation for more info.
+      "initial_trust_ratio": 1.0,
+      # "initial_penalty_parameter":100000,
+    },
     ftol=1e-10,
     xtol=1e-10,
     gtol=1e-10,
-    maxiter=200
+    maxiter=params.maxiter
   )
 
   solution_volume=get_volume(eq_init)

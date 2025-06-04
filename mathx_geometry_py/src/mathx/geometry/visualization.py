@@ -137,12 +137,24 @@ def generate_scatter3d(vtx,color):
         opacity=0.8
     )
   )
-
-def write_visualization(elements,path):
+  
+def generate_visualization(elements):
   log.info(f"generating figure elements={len(elements)}")
   fig = go.Figure(data=elements)
   log.info(f"enforcing symmetric axis scaling")
   fig.update_scenes(aspectmode="data")
+  fig.update_layout(margin=go.layout.Margin(
+      l=0, #left margin
+      r=0, #right margin
+      b=0, #bottom margin
+      t=0  #top margin
+    )
+  )
+
   # fig.update_scenes(aspectratio={"x":1,"y":1,"z":1})
+  return fig  
+
+def write_visualization(elements,path):
+  fig=generate_visualization(elements)
   log.info(f"writing to path={path}")
   fig.write_html(path)

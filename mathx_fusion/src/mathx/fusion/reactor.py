@@ -34,12 +34,19 @@ def RingMagnet(structure_fn,phi,width,height):
   def pos_fn(u):
     x,b,n=structure_fn(jnp.array([phi,u[0],0]))
     dphi=b[:,0]/jnp.linalg.norm(b[:,0])
-    return x+dphi*width*(u[1]-.5)+n*height*u[2]
+    xp=x+dphi*width*(u[1]-.5)+n*height*u[2]
+
+    # jax.debug.print("u={u} n={n} x={x} xp={xp} w={w} h={h}",u=u,n=n,x=x,xp=xp,w=width,h=height)
+
+    return xp
 
   return curvilinear.Curvilinear(
     pos_fn,
     closed=(True,False,False),
     min_segments=(4,1,1))
+  
+def Port(structure_fn,phi,theta,width):
+  pass
 
 def Support(structure_fn,uc,ground_level,width):
   log.info(f"Support {uc=} {ground_level=} {width=}")
@@ -85,15 +92,17 @@ class Reactor:
 
   # @functools.partial(jax.jit,static_argnums=(0,))
   def structure_fn_plasma(self,u):
-    up=jnp.array([1,u[0]*2*jnp.pi,u[1]*2*jnp.pi])
-    # jax.debug.print("up={up}",up=up)
-    x,b=self.plasma.get_surface(up)
-    # jax.debug.print("b={b}",b=b)
-    b=b[:,::-1]*jnp.array([1./(2*jnp.pi),1./(2*jnp.pi),1./(2*jnp.pi)])[None,...]
-    n=-jnp.cross(b[:,0],b[:,1])
-    # jax.debug.print("n={n}",n=n)
+    up=u[::-1]*jnp.array([1,2*jnp.pi,2*jnp.pi])+jnp.array([1,0,0])
+
+    x,bp=self.plasma.get_surface(up)
+    b=bp[:,::-1]*jnp.array([1./(2*jnp.pi),1./(2*jnp.pi),1])[None,...]
+
+    n=jnp.cross(b[:,0],b[:,1])
     n=n/jnp.linalg.norm(n)
     x=x+u[2]*n
+
+    # jax.debug.print("u={u} up={up} n={n} x={x}",u=u,up=up,n=n,x=x)
+    # jax.debug.print("b={b}",b=b)
 
     return x,b,n
 
@@ -128,6 +137,7 @@ class Reactor:
     # self.plasma_chamber=Torus(params.plasma_chamber)
     self.plasma_chamber=PlasmaChamber(self.structure_fn,params.wall_thickness)
 
+    #Offset structure function by chamber wall thickness
     self.structure_fn_offset=lambda u:self.structure_fn(u+jnp.array([0,0,params.wall_thickness]))
 
     # print(self.structure_fn(jnp.array([0.,0,0])))

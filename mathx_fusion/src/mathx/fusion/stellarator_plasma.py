@@ -6,7 +6,8 @@ class StellaratorPlasma(ToroidalPlasma):
     self.eq=eq
 
   def get_surface(self,u):
-    return equilibrium.get_xyz_basis(self.eq,u)
+    x,B=equilibrium.get_xyz_basis(self.eq,u)
+    return x,B
   
   def get_B(self,u):
     return equilibrium.get_B(self.eq,u)

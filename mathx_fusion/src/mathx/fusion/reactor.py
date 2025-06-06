@@ -97,7 +97,7 @@ class Reactor:
     x,bp=self.plasma.get_surface(up)
     b=bp[:,::-1]*jnp.array([1./(2*jnp.pi),1./(2*jnp.pi),1])[None,...]
 
-    n=jnp.cross(b[:,0],b[:,1])
+    n=jnp.cross(b[:,1],b[:,0])
     n=n/jnp.linalg.norm(n)
     x=x+u[2]*n
 

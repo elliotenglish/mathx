@@ -17,8 +17,8 @@ def toroid_to_xyz(major_radius,minor_radius_inner,minor_radius_outer,rho,theta,p
   """
 
   r=minor_radius_inner+rho*(minor_radius_outer-minor_radius_inner)
-  R=major_radius+r*jnp.cos(theta)
-  z=r*jnp.sin(theta)
+  R=major_radius+r*jnp.cos(-theta)
+  z=r*jnp.sin(-theta)
   x=R*jnp.cos(phi)
   y=R*jnp.sin(phi)
   return x,y,z

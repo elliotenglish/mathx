@@ -35,9 +35,9 @@ def RingMagnet(nfp,structure_fn,phi,width,height):
   log.info(f"RingMagnet {phi=} {width=} {height=}")
   #pert=FourierND(mode_shape=(4,4))
   # pert.coefficients=jnp.array([1./(1+abs(m[0])+abs(m[1])) for m in pert.modes])*.02
-  n_mode=1
+  n_mode=2
   modes=[(m*nfp,n) for m in range(-n_mode,n_mode+1) for n in range(-n_mode,n_mode+1)]
-  coefficients=Generator(423).uniform(size=[len(modes)],low=-1,high=1)*.02
+  coefficients=Generator(423).uniform(size=[len(modes)],low=-1,high=1)*.005
   pert=FourierND(modes=modes,coefficients=coefficients)
 
   def pos_fn(u):

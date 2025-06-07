@@ -32,8 +32,8 @@ def PlasmaChamber(structure_fn,thickness):
 
 def RingMagnet(structure_fn,phi,width,height):
   log.info(f"RingMagnet {phi=} {width=} {height=}")
-  pert=FourierND(mode_shape=(2,2))
-  pert.coefficients=jnp.array([0,.5,.5,.25,.25,.25])*.02
+  pert=FourierND(mode_shape=(4,4))
+  pert.coefficients=jnp.array([1./(1+abs(m[0])+abs(m[1])) for m in pert.modes])*.02
 
   def pos_fn(u):
     pe=pert(jnp.array([phi,u[0]]))

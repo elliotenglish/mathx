@@ -5,6 +5,7 @@ import math
 # from mathx.geometry.torus import Torus
 # from mathx.geometry.cylinder import Cylinder
 from mathx.geometry import curvilinear
+from mathx.geometry.fourier import FourierND
 from mathx.core import log
 from .toroidal_plasma import ToroidalPlasma
 # from .magnet import Magnet
@@ -31,8 +32,12 @@ def PlasmaChamber(structure_fn,thickness):
 
 def RingMagnet(structure_fn,phi,width,height):
   log.info(f"RingMagnet {phi=} {width=} {height=}")
+  pert=FourierND(mode_shape=(2,2))
+  pert.coefficients=jnp.array([0,.5,.5,.25,.25,.25])*.005
+
   def pos_fn(u):
-    x,b,n=structure_fn(jnp.array([phi,u[0],0]))
+    phip=phi+pert(u[0:2])
+    x,b,n=structure_fn(jnp.array([phip,u[0],0]))
     dphi=b[:,0]/jnp.linalg.norm(b[:,0])
     xp=x+dphi*width*(u[1]-.5)+n*height*u[2]
 

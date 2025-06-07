@@ -7,6 +7,7 @@ import math
 from mathx.geometry import curvilinear
 from mathx.geometry.fourier import FourierND
 from mathx.core import log
+from mathx.core.jax_utilities import Generator
 from .toroidal_plasma import ToroidalPlasma
 # from .magnet import Magnet
 
@@ -32,8 +33,11 @@ def PlasmaChamber(structure_fn,thickness):
 
 def RingMagnet(structure_fn,phi,width,height):
   log.info(f"RingMagnet {phi=} {width=} {height=}")
-  pert=FourierND(mode_shape=(4,4))
-  pert.coefficients=jnp.array([1./(1+abs(m[0])+abs(m[1])) for m in pert.modes])*.02
+  #pert=FourierND(mode_shape=(4,4))
+  # pert.coefficients=jnp.array([1./(1+abs(m[0])+abs(m[1])) for m in pert.modes])*.02
+  modes=[(m*5,n) for m in range(-2,3) for n in range(-2,3)]
+  coefficients=Generator(423).uniform(size=[len(modes)],low=-1,high=1)*.02
+  pert=FourierND(modes=modes,coefficients=coefficients)
 
   def pos_fn(u):
     pe=pert(jnp.array([phi,u[0]]))

@@ -33,10 +33,12 @@ def PlasmaChamber(structure_fn,thickness):
 def RingMagnet(structure_fn,phi,width,height):
   log.info(f"RingMagnet {phi=} {width=} {height=}")
   pert=FourierND(mode_shape=(2,2))
-  pert.coefficients=jnp.array([0,.5,.5,.25,.25,.25])*.005
+  pert.coefficients=jnp.array([0,.5,.5,.25,.25,.25])*.02
 
   def pos_fn(u):
-    phip=phi+pert(u[0:2])
+    pe=pert(jnp.array([phi,u[0]]))
+    # jax.debug.print("u={u} pe={pe}",u=u,pe=pe)
+    phip=phi+pe
     x,b,n=structure_fn(jnp.array([phip,u[0],0]))
     dphi=b[:,0]/jnp.linalg.norm(b[:,0])
     xp=x+dphi*width*(u[1]-.5)+n*height*u[2]
@@ -139,10 +141,12 @@ class Reactor:
 
     ###################################
     # Plasma chamber
+    log.info("creating plasma chamber")
     # self.plasma_chamber=Torus(params.plasma_chamber)
     self.plasma_chamber=PlasmaChamber(self.structure_fn,params.wall_thickness)
 
     #Offset structure function by chamber wall thickness
+    log.info("defining structure function")
     self.structure_fn_offset=lambda u:self.structure_fn(u+jnp.array([0,0,params.wall_thickness]))
 
     # print(self.structure_fn(jnp.array([0.,0,0])))
@@ -154,6 +158,7 @@ class Reactor:
 
     ###################################
     # Magnets
+    log.info("generating magnets")
     magnet_phi=jnp.linspace(0,1,params.num_magnets,endpoint=False)
     # log.info(f"{magnet_phi=}")
     self.magnets=[

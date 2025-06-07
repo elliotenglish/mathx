@@ -4,9 +4,10 @@ from .toroidal_plasma import ToroidalPlasma
 import jax.numpy as jnp
 
 class TorusPlasma(ToroidalPlasma):
-  def __init__(self,major_radius,minor_radius):
+  def __init__(self,major_radius,minor_radius,nfp=1):
     self.major_radius=major_radius
     self.minor_radius=minor_radius
+    self.nfp_=nfp
 
   def get_surface(self,rtz):
     def xyz_fn(rtp):
@@ -24,3 +25,7 @@ class TorusPlasma(ToroidalPlasma):
   def get_u(self,x):
     rtz=torus.xyz_to_toroid(self.major_radius,0,self.minor_radius,*x)
     return jnp.array(rtz)
+
+  @property
+  def nfp(self):
+    return self.nfp_

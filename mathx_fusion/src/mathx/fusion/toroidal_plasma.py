@@ -11,12 +11,17 @@ class ToroidalPlasma(abc.ABC):
       x: Physical space position
       dx/dy: Basis
     """
-    pass
+    raise NotImplementedError
 
   @abc.abstractmethod
   def get_B(self,rtz):
-    pass
+    raise NotImplementedError
 
   @abc.abstractmethod
   def get_u(self,x):
-    pass
+    raise NotImplementedError
+
+  @property
+  @abc.abstractmethod
+  def nfp(self):
+    raise NotImplementedError

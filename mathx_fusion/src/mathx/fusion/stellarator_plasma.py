@@ -14,3 +14,7 @@ class StellaratorPlasma(ToroidalPlasma):
 
   def get_u(self,x):
     return equilibrium.get_u(self.eq,x)
+
+  @property
+  def nfp(self):
+    return self.eq.NFP

@@ -31,20 +31,13 @@ def PlasmaChamber(structure_fn,thickness):
     closed=(True,True,False),
     min_segments=(4,4,1))
 
-def RingMagnet(nfp,structure_fn,phi,width,height):
-  log.info(f"RingMagnet {phi=} {width=} {height=}")
+def RingMagnet(structure_fn,width,height):
+  log.info(f"RingMagnet {width=} {height=}")
   #pert=FourierND(mode_shape=(4,4))
   # pert.coefficients=jnp.array([1./(1+abs(m[0])+abs(m[1])) for m in pert.modes])*.02
-  n_mode=2
-  modes=[(m*nfp,n) for m in range(-n_mode,n_mode+1) for n in range(-n_mode,n_mode+1)]
-  coefficients=Generator(423).uniform(size=[len(modes)],low=-1,high=1)*.005
-  pert=FourierND(modes=modes,coefficients=coefficients)
 
   def pos_fn(u):
-    pe=pert(jnp.array([phi,u[0]]))
-    # jax.debug.print("u={u} pe={pe}",u=u,pe=pe)
-    phip=phi+pe
-    x,b,n=structure_fn(jnp.array([phip,u[0],0]))
+    x,b,n=structure_fn(jnp.array([0,u[0],0]))
     dphi=b[:,0]/jnp.linalg.norm(b[:,0])
     xp=x+dphi*width*(u[1]-.5)+n*height*u[2]
 
@@ -165,9 +158,24 @@ class Reactor:
     # Magnets
     log.info("generating magnets")
     magnet_phi=jnp.linspace(0,1,params.num_magnets,endpoint=False)
+
+    n_mode=2
+    modes=[(m*plasma.nfp,n)
+           for m in range(-n_mode,n_mode+1)
+           for n in range(-n_mode,n_mode+1)]
+    coefficients=Generator(423).uniform(size=[len(modes)],low=-1,high=1)*.005
+    pert=FourierND(modes=modes,coefficients=coefficients)
+
+    # Use a function so that phi is copied into the function closure. A lambda doesn't do this.
+    def GenerateMagnet(phi):
+      return RingMagnet(
+        # lambda u:self.structure_fn_offset(u+jnp.array([phi+pert(jnp.array([phi,u[1]])),0,0])),
+        lambda u:self.structure_fn_offset(u+jnp.array([phi,0,0])),
+        .2,.2)
+
     # log.info(f"{magnet_phi=}")
     self.magnets=[
-      RingMagnet(self.plasma.nfp,self.structure_fn_offset,phi,.2,.2)
+      GenerateMagnet(phi)
       for phi in magnet_phi
     ]
 

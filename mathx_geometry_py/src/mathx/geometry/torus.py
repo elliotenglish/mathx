@@ -26,7 +26,7 @@ def toroid_to_xyz(major_radius,minor_radius_inner,minor_radius_outer,rho,theta,p
 def xyz_to_toroid(major_radius,minor_radius_inner,minor_radius_outer,x,y,z):
   phi=jnp.arctan2(y,x)
   R=jnp.sqrt(x**2+y**2)
-  theta=jnp.arctan2(z,R-major_radius)
+  theta=-jnp.arctan2(z,R-major_radius)
   r=jnp.sqrt(z**2+(R-major_radius)**2)
   rho=(r-minor_radius_inner)/(minor_radius_outer-minor_radius_inner)
   return rho,theta,phi

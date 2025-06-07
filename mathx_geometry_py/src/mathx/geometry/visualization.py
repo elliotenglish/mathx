@@ -14,7 +14,7 @@ def add_remove_dupe_simplex(simplex_map,s):
 def get_boundary_faces(tets):
   sorted_map={}
   for tet in tets:
-    for tri in tetrahedron_to_triangle(tet):
+    for tri in tetrahedron_to_triangle(tet.tolist()):
       tri_s=tuple(sorted(tri))
       if tri_s in sorted_map:
         sorted_map.pop(tri_s)
@@ -22,7 +22,7 @@ def get_boundary_faces(tets):
       else:
         sorted_map[tri_s]=tri
 
-  return [v for k,v in sorted_map.items()]
+  return np.array([v for k,v in sorted_map.items()],dtype=tets.dtype)
 
 def color_str(color):
   return f"rgb({color[0]},{color[1]},{color[2]})"
@@ -76,21 +76,25 @@ def generate_mesh3d(vtx=None,
   assert tri is not None
 
   if wireframe:
-    edges=set()
-    for t in tri:
-      for i in range(3):
-        edges.add((t[i],t[(i+1)%3]))
-    x=[]
-    y=[]
-    z=[]
-    for e in edges:
-      x.extend([vtx[e[0]][0],vtx[e[1]][0],None])
-      y.extend([vtx[e[0]][1],vtx[e[1]][1],None])
-      z.extend([vtx[e[0]][2],vtx[e[1]][2],None])
+    # edges=set()
+    # for t in tri:
+    #   for i in range(3):
+    #     edges.add((t[i],t[(i+1)%3]))
+    edges=np.concatenate([tri[:,[i,(i+1)%4]] for i in range(3)])
+    edges=np.unique(edges,axis=0)
+    # x=[]
+    # y=[]
+    # z=[]
+    # for e in edges:
+    #   x.extend([vtx[e[0]][0],vtx[e[1]][0],None])
+    #   y.extend([vtx[e[0]][1],vtx[e[1]][1],None])
+    #   z.extend([vtx[e[0]][2],vtx[e[1]][2],None])
+    x=[np.concatenate([vtx[edges[:,0],d][...,None],vtx[edges[:,1],d][...,None],[[None]]*edges.shape[0]],axis=1).reshape(-1)
+       for d in range(3)]
     return go.Scatter3d(
-      x=x,
-      y=y,
-      z=z,
+      x=x[0],#x,
+      y=x[1],#y
+      z=x[2],#z
       mode="lines+markers",
       marker_size=3,
       marker=dict(color=color_str(color))
@@ -98,9 +102,9 @@ def generate_mesh3d(vtx=None,
     
   else:
     return go.Mesh3d(
-        x=[v[0] for v in vtx],
-        y=[v[1] for v in vtx],
-        z=[v[2] for v in vtx],
+        x=vtx[:,0],#[v[0] for v in vtx],
+        y=vtx[:,1],#[v[1] for v in vtx],
+        z=vtx[:,2],#[v[2] for v in vtx],
         # colorbar=dict(title=dict(text='z')),
         # colorscale=[[0, 'gold'],
         #             [0.5, 'mediumturquoise'],
@@ -109,9 +113,9 @@ def generate_mesh3d(vtx=None,
         # intensity=[0, 0.33, 0.66, 1],
         # i, j and k give the vertices of triangles
         # here we represent the 4 triangles of the tetrahedron surface
-        i=[t[0] for t in tri],
-        j=[t[1] for t in tri],
-        k=[t[2] for t in tri],
+        i=tri[:,0],#[t[0] for t in tri],
+        j=tri[:,1],#[t[1] for t in tri],
+        k=tri[:,2],#[t[2] for t in tri],
         # name='plasma_surface',
         lighting_specular=1.5,
         color=color_str(color),

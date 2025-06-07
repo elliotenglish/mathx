@@ -26,7 +26,7 @@ def compute_degenerate_idx(idx,vshape,degenerate):
   #   print(f"{idx} {real_idx}")
   return tuple(real_idx)
 
-def generate_mesh_volume(pos_fn,segments,closed=(False,False,False),degenerate=None):
+def generate_mesh_volume(pos_fn,segments,closed=(False,False,False),degenerate=None,return_arrays=False):
   """
   Generates a volumetric tetrahedral mesh for a given function defining the mesh positions. The mesh can then be closed at end pairs, or degenerate at ends in either/both tangential axes.
 
@@ -64,9 +64,9 @@ def generate_mesh_volume(pos_fn,segments,closed=(False,False,False),degenerate=N
   def wrap(*ix):
     return tuple([n%vshape[i] for i,n in enumerate(ix)])
 
-  tet_idx=[]
+  elem=[]
   for idx in np.ndindex(sshape):
-    tet_idx.extend(remove_degenerate(
+    elem.extend(remove_degenerate(
       hexagon.hexagon_to_tetrahedron([
         vtx_idx[wrap(idx[0],  idx[1],  idx[2]  )],
         vtx_idx[wrap(idx[0]+1,idx[1],  idx[2]  )],
@@ -79,8 +79,12 @@ def generate_mesh_volume(pos_fn,segments,closed=(False,False,False),degenerate=N
       ],reverse=sum(idx)%2==1)))
   # print(vtx_idx)
   # print(tet_idx)
+  
+  if not return_arrays:
+    vtx=jnp.array(vtx)
+    elem=jnp.array(elem,dtype=jnp.int32)
 
-  return vtx,tet_idx
+  return vtx,elem
 
 class SimplexMesh:
   def __init__(self):
@@ -91,7 +95,7 @@ class SimplexMesh:
     #for each element, loop over d-1 codimensions, generate nodes if they don't exist, then add tesselated sub-elements
     pass
 
-def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=None):
+def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=None,return_arrays=False):
   """
   params:
     See generate_mesh_volume
@@ -147,7 +151,10 @@ def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=
   vtx=batch_pos_fn(vtx_u)
 
   #Convert back to array
-  vtx=[v for v in vtx]
+  if return_arrays:
+    vtx=[v for v in vtx]
+  else:
+    elem=jnp.array(elem)
 
   return vtx,elem
 

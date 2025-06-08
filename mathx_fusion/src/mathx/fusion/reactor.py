@@ -6,6 +6,7 @@ import math
 # from mathx.geometry.cylinder import Cylinder
 from mathx.geometry import curvilinear
 from mathx.geometry.fourier import FourierND
+from mathx.geometry import basis
 from mathx.core import log
 from mathx.core.jax_utilities import Generator
 from .toroidal_plasma import ToroidalPlasma
@@ -31,11 +32,6 @@ def PlasmaChamber(structure_fn,thickness):
     closed=(True,True,False),
     min_segments=(4,4,1))
 
-def orthogonalize_basis(basis):
-  basis0=basis[0]
-  basis1=basis[1]-
-  return jnp.array([basis[0],basis[1]-(basis[0]@basis[1])/np.linalg.norm([basis1])
-
 def ConformalMagnet(structure_fn,width):
   # log.info(f"RingMagnet {width=}")
 
@@ -53,26 +49,32 @@ def ConformalMagnet(structure_fn,width):
 
 def RingMagnet(x,basis,radius,width):
   def pos_fn(u):
-    r=radius+u[1]*width
-    return x+(u[0]-.5)*width*basis[0]+jnp.cos(u[1])*r*basis[1]+jnp.sin(u[1])*r*basis[2]
+    r=radius+u[2]*width
+    return (x+
+            (u[0]-.5)*width*basis[:,0]+
+            jnp.cos(2*jnp.pi*u[1])*r*basis[:,1]+
+            jnp.sin(2*jnp.pi*u[1])*r*basis[:,2])
     
-  return curvilinear.curvilinear(
+  return curvilinear.Curvilinear(
     pos_fn,
-    closed=(False,True,False)
-    min_segment=(1,4,1))
+    closed=(False,True,False),
+    min_segments=(1,4,1))
 
 def CylinderMagnet(x,basis,radius,length,thickness):
   def pos_fn(u):
-    r=radius+u[1]*thickness
-    return x+(u[0]-.5)*length*basis[0]+jnp.cos(u[1])*r*basis[1]+jnp.sin(u[1])*r*basis[2]
+    r=radius+u[2]*thickness
+    return (x+
+        (u[0]-.5)*length*basis[:,0]+
+        jnp.cos(2*jnp.pi*u[1])*r*basis[:,1]+
+        jnp.sin(2*jnp.pi*u[1])*r*basis[:,2])
     
-  return curvilinear.curvilinear(
+  return curvilinear.Curvilinear(
     pos_fn,
-    closed=(False,True,False)
-    min_segment=(1,4,1))
+    closed=(False,True,False),
+    min_segments=(1,4,1))
 
 def Port(structure_fn,phi,theta,width):
-
+  pass
 
 def Support(structure_fn,uc,ground_level,width):
   log.info(f"Support {uc=} {ground_level=} {width=}")
@@ -93,12 +95,13 @@ class ReactorParameters:
   magnets_conformal_num: int
   magnets_conformal_width: float
   magnets_ring_num: int
-  magnets_ring_distance: float
+  magnets_ring_radius: float
   magnets_ring_width: float
   magnets_cylinder_num: int
-  magnets_cylinder_margin: float
-  magnets_cylinder_phase: float
+  magnets_cylinder_radius: float
+  magnets_cylinder_length: float
   magnets_cylinder_thickness: float
+  magnets_cylinder_phase: float
   supports_num: int
   supports_width: float
   # primary_chamber: Torus.Parameters
@@ -125,6 +128,10 @@ class Reactor:
 
   # @functools.partial(jax.jit,static_argnums=(0,))
   def structure_fn_plasma(self,u):
+    # Handle singularity
+    epsilon=1e-5
+    u=jnp.array([u[0],u[1],jnp.maximum(epsilon,u[2])])
+
     up=u[::-1]*jnp.array([1,2*jnp.pi,2*jnp.pi])+jnp.array([1,0,0])
 
     x,bp=self.plasma.get_surface(up)
@@ -184,9 +191,11 @@ class Reactor:
 
     ###################################
     # Magnets
-    log.info("generating conformal magnets")
-    magnets_conformal_phi=jnp.linspace(0,1,params.magnets_conformal_num*plasma.nfp,endpoint=False)
+    self.magnets=[]
 
+    ###############
+    log.info("generating conformal magnets")
+    magnets_conformal_phi=jnp.linspace(0,1,params.magnets_conformal_num,endpoint=False)
     n_mode=2
     modes=[(m*plasma.nfp,n)
            for m in range(-n_mode,n_mode+1)
@@ -195,17 +204,43 @@ class Reactor:
     pert=FourierND(modes=modes,coefficients=coefficients)
 
     # Use a function so that phi is copied into the function closure. A lambda doesn't do this.
-    def GenerateMagnet(phi):
+    def GenerateConformalMagnet(phi):
       return ConformalMagnet(
         lambda u:self.structure_fn_offset(u+jnp.array([phi+pert(jnp.array([phi,u[1]])),0,0])),
         # lambda u:self.structure_fn_offset(u+jnp.array([phi,0,0])),
         params.magnets_conformal_width)
 
     # log.info(f"{magnet_phi=}")
-    self.magnets=[
-      GenerateMagnet(phi)
+    self.magnets+=[
+      GenerateConformalMagnet(phi)
       for phi in magnets_conformal_phi
     ]
+
+    ###############
+    log.info("generating conformal magnets")
+    def GenerateRingMagnet(phi):
+      x,b=self.plasma.get_surface(jnp.array([1e-5,0,2*jnp.pi*phi]))
+      b=b[:,::-1]
+      b=basis.orthogonalize(b.T).T
+      return RingMagnet(x,b,params.magnets_ring_radius,params.magnets_ring_width)
+
+    magnets_ring_phi=jnp.linspace(0,1,params.magnets_ring_num,endpoint=False)
+    self.magnets+=[
+      GenerateRingMagnet(phi)
+      for phi in magnets_ring_phi]
+    
+    ###############
+    log.info("generating cylinder magnets")
+    def GenerateCylinderMagnet(phi):
+      x,b=self.plasma.get_surface(jnp.array([1e-5,0,2*jnp.pi*(phi+params.magnets_cylinder_phase)]))
+      b=b[:,::-1]
+      b=basis.orthogonalize(b.T).T
+      return CylinderMagnet(x,b,params.magnets_cylinder_radius,params.magnets_cylinder_length,params.magnets_cylinder_thickness)
+
+    magnets_cylinder_phi=jnp.linspace(0,1,params.magnets_cylinder_num,endpoint=False)
+    self.magnets+=[
+      GenerateCylinderMagnet(phi)
+      for phi in magnets_cylinder_phi]
 
     ###################################
     # Supports
@@ -213,8 +248,8 @@ class Reactor:
 
     log.info("generating supports")
     self.supports=[]
-    # while len(self.supports)<params.num_supports:
-    for phi in np.linspace(0,1,params.num_supports,endpoint=False):
+    # while len(self.supports)<params.supports_num:
+    for phi in np.linspace(0,1,params.supports_num,endpoint=False):
       # u=np.concatenate([rand.uniform(low=0,high=1,size=[2]),[0]])
       while True:
         u=np.concatenate([[phi],rand.uniform(low=0,high=1,size=[1]),[0]])
@@ -246,9 +281,3 @@ class Reactor:
     return (
       [c.tesselate_surface(self.density) for c in self.components]
     )
-
-    #1 Define plasma chamber using surface_fn
-    #2 Define magnets as grid on offset surface_fn
-    #3 Define ports using surface_fn
-    #4 Define support stucture by sampling extrema of surface function and then extruding to ground plane
-    #4 Define exterior mechanisms...

@@ -23,9 +23,21 @@ def reactor_test_helper(plasma,prefix=""):
   log.info("creating reactor")
   params=freact.ReactorParameters(
     wall_thickness=.2,
-    magnet_width=.2,
-    num_magnets=6*plasma.nfp,
-    num_supports=0,
+    magnets_conformal_num=0,
+    # magnets_conformal_num=7*plasma.nfp,
+    magnets_conformal_width=.2,
+    magnets_ring_num=0,
+    # magnets_ring_num=3*plasma.nfp,
+    magnets_ring_radius=2.2,
+    magnets_ring_width=.2,
+    # magnets_cylinder_num=0,
+    magnets_cylinder_num=1*plasma.nfp,
+    magnets_cylinder_radius=2.1,
+    magnets_cylinder_length=5,
+    magnets_cylinder_phase=0,
+    magnets_cylinder_thickness=0.05,
+    supports_num=0,
+    supports_width=.2,
   )
   reactor=freact.Reactor(plasma,params=params)
 
@@ -42,8 +54,8 @@ def reactor_test_helper(plasma,prefix=""):
     el
     for idx,c in enumerate(components)
     for el in [
-      viz.generate_mesh3d(c[0],c[1],color=rand.uniform(low=0,high=255,size=(3)),wireframe=False),
-      viz.generate_mesh3d(c[0],c[1],color=[0,255,0],wireframe=True)
+      viz.generate_mesh3d(c[0],c[1],color=rand.uniform(low=0,high=255,size=(3))),
+      # viz.generate_mesh3d(c[0],c[1],color=[0,255,0],wireframe=True)
     ]
   ]
   log.info(f"writing visualization output={path}")

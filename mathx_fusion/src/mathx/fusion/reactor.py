@@ -146,11 +146,28 @@ class Reactor:
 
     return x,b,n
 
+  def get_basis_bounds(self,xs,basis):
+    db=xs@basis
+    low=np.min(db,axis=0)
+    high=np.max(db,axis=0)
+
+  def get_structure_bounds(self, phi, length):
+    thetas=jnp.linspace(0,1,8,endpoint=False)
+    us=jnp.concatenate([[[phi]],thetas[None,...],[[1]]])
+    xs,bs,ns=self.structure_fn_batch(us)
+    basis=basis.orthogonalize(np.sum(bs,axis=0).T).T
+    
+
+    # dxdphi=jnp.max(jnp.linalg.norm(bs[:,:,0],axis=1))
+    # dphi=.5*length/dxdphi
+    # us=jnp.concatenate([[[phi]],thetas[None,...],[[0]]])
+
   def __init__(self, plasma, params: ReactorParameters):
     params.wall_thickness=0.2
     self.plasma=plasma
 
     self.structure_fn=self.structure_fn_plasma
+    self.structure_fn_batch=jax.jit(jax.vmap(self.structure_fn,in_axes=(0),out_axes=(0,0,0)))
 
     # us0=jnp.array([[0,0,0]],dtype=jnp.float64)
     # us1=jnp.array([[0,0,0],[.5,0,0]],dtype=jnp.float64)
@@ -232,6 +249,8 @@ class Reactor:
     ###############
     log.info("generating cylinder magnets")
     def GenerateCylinderMagnet(phi):
+      structure_center,structure_radius=self.get_structure_bounds(phi,params.magnets_cylinder_length)
+      log.info(f"{phi=} {structure_center=},{structure_radius=}")
       x,b=self.plasma.get_surface(jnp.array([1e-5,0,2*jnp.pi*(phi+params.magnets_cylinder_phase)]))
       b=b[:,::-1]
       b=basis.orthogonalize(b.T).T

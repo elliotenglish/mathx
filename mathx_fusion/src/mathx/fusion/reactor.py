@@ -17,6 +17,27 @@ import jax
 import jax.numpy as jnp
 import functools
 
+@dataclass
+class ReactorParameters:
+  wall_thickness: float
+  magnets_conformal_num: int
+  magnets_conformal_width: float
+  magnets_ring_num: int
+  magnets_ring_radius: float
+  magnets_ring_width: float
+  magnets_cylinder_num: int
+  magnets_cylinder_radius: float
+  magnets_cylinder_length: float
+  magnets_cylinder_thickness: float
+  magnets_cylinder_phase: float
+  ports_num: int
+  ports_length: float
+  ports_radius: float
+  ports_thickness: float
+  supports_num: int
+  supports_width: float
+  supports_ground_level: float
+
 def PlasmaSurface(plasma,surface):
   log.info(f"Plasma {surface=}")
   return curvilinear.Curvilinear(
@@ -73,8 +94,20 @@ def CylinderMagnet(x,basis,radius,length,thickness):
     closed=(False,True,False),
     min_segments=(1,4,1))
 
-def Port(structure_fn,phi,theta,width):
-  pass
+def Port(structure_fn,uc,length,radius,thickness):
+  log.info(f"Port {uc=} {length=} {radius=} {thickness=}")
+  xc,bc,nc=structure_fn(uc)
+  
+  def pos_fn(u):
+    r=radius+thickness*u[2]
+    ua=uc+jnp.array([jnp.cos(2*jnp.pi*u[1])*r/jnp.linalg.norm(bc[:,0]),
+                     jnp.sin(2*jnp.pi*u[1])*r/jnp.linalg.norm(bc[:,1]),
+                     0])
+    xa=structure_fn(ua)[0]
+    # jax.debug.print("uc={uc} ua={ua} xa={xa}",uc=uc,ua=ua,xa=xa)
+    return xa+u[0]*length*nc
+  
+  return curvilinear.Curvilinear(pos_fn,closed=(False,True,False))
 
 def Support(structure_fn,uc,ground_level,width):
   log.info(f"Support {uc=} {ground_level=} {width=}")
@@ -88,27 +121,6 @@ def Support(structure_fn,uc,ground_level,width):
     return jnp.array([xa[0],xa[1],ground_level*(1-u[2])+u[2]*xa[2]])
 
   return curvilinear.Curvilinear(pos_fn)
-
-@dataclass
-class ReactorParameters:
-  wall_thickness: float
-  magnets_conformal_num: int
-  magnets_conformal_width: float
-  magnets_ring_num: int
-  magnets_ring_radius: float
-  magnets_ring_width: float
-  magnets_cylinder_num: int
-  magnets_cylinder_radius: float
-  magnets_cylinder_length: float
-  magnets_cylinder_thickness: float
-  magnets_cylinder_phase: float
-  supports_num: int
-  supports_width: float
-  # primary_chamber: Torus.Parameters
-  # magnets: list[Magnet.Parameters]
-  # heating_ports: list[Port.Parameters]
-  # diagnostic_ports: list[Port.Parameters]
-  # diverter_ports: list[Port.Parameters]
 
 class Reactor:
   # @functools.partial(jax.jit,static_argnums=(0,))
@@ -180,7 +192,8 @@ class Reactor:
     # us=jnp.concatenate([[[phi]],thetas[None,...],[[0]]])
 
   def __init__(self, plasma, params: ReactorParameters):
-    params.wall_thickness=0.2
+    self.rand=np.random.default_rng(54323)
+
     self.plasma=plasma
 
     self.structure_fn=self.structure_fn_plasma
@@ -254,7 +267,7 @@ class Reactor:
     log.info("generating ring magnets")
     def GenerateRingMagnet(phi):
       x,b,r=self.get_structure_bounds(float(phi),params.magnets_ring_width)
-      return RingMagnet(x,b,params.magnets_ring_radius,params.magnets_ring_width)
+      return RingMagnet(x,b,r+params.magnets_ring_radius,params.magnets_ring_width)
 
     magnets_ring_phi=jnp.linspace(0,1,params.magnets_ring_num,endpoint=False)
     self.magnets+=[
@@ -265,12 +278,12 @@ class Reactor:
     log.info("generating cylinder magnets")
     def GenerateCylinderMagnet(phi):
       x,b,r=self.get_structure_bounds(float(phi),params.magnets_cylinder_length)
-      log.info(f"{phi=} {x=} {b=} {r=}")
+      # log.info(f"{phi=} {x=} {b=} {r=}")
       # x,b=self.plasma.get_surface(jnp.array([1e-5,0,2*jnp.pi*(phi+params.magnets_cylinder_phase)]))
       # b=b[:,::-1]
       # b=basis.orthogonalize(b.T).T
-      return CylinderMagnet(x,b,r,
-                            # params.magnets_cylinder_radius,
+      return CylinderMagnet(x,b,
+                            r+params.magnets_cylinder_radius,
                             params.magnets_cylinder_length,
                             params.magnets_cylinder_thickness)
 
@@ -278,23 +291,37 @@ class Reactor:
     self.magnets+=[
       GenerateCylinderMagnet(phi)
       for phi in magnets_cylinder_phi]
+    
+    ###################################
+    # Ports
+    def GeneratePort(u):
+      # x,b,n=self.structure_fn_offset(u)
+      return Port(self.structure_fn_offset,
+                  u,
+                  params.ports_length,
+                  params.ports_radius,
+                  params.ports_thickness)
+
+    self.ports=[]
+    while len(self.ports)<params.ports_num:
+      u=np.concatenate([self.rand.uniform(size=2,low=0,high=1),[0]])
+      self.ports.append(GeneratePort(u))
 
     ###################################
     # Supports
-    rand=np.random.default_rng(54323)
-
     log.info("generating supports")
     self.supports=[]
     # while len(self.supports)<params.supports_num:
-    for phi in np.linspace(0,1,params.supports_num,endpoint=False):
+    for phi in jnp.linspace(0,1,params.supports_num,endpoint=False):
       # u=np.concatenate([rand.uniform(low=0,high=1,size=[2]),[0]])
-      while True:
-        u=np.concatenate([[phi],rand.uniform(low=0,high=1,size=[1]),[0]])
+      # self.rand.uniform(low=0,high=1,size=[1]),[1]
+      for theta in jnp.linspace(0,1,16):
+        u=jnp.array([phi,theta,0])
         x,b,n=self.structure_fn_offset(u)
-        # print(u,x,n)
-        if n[2]<-.9:
-          # log.info(f"support {u=} {x=} {n=}")
-          self.supports.append(Support(self.structure_fn_offset,u,-3,.01))
+        print(u,x,n)
+        if n[2]<-.8:
+          log.info(f"support {u=} {x=} {n=}")
+          self.supports.append(Support(self.structure_fn_offset,u,params.supports_ground_level,params.supports_width))
           break
 
     ###################################
@@ -302,9 +329,10 @@ class Reactor:
     self.components=(
       [
         self.plasma_surface,
-        # self.plasma_chamber
+        self.plasma_chamber
       ] +
       self.magnets +
+      self.ports +
       self.supports
     )
 

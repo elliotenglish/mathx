@@ -184,8 +184,8 @@ class Reactor:
 
     ###################################
     # Magnets
-    log.info("generating magnets")
-    magnet_phi=jnp.linspace(0,1,params.num_magnets,endpoint=False)
+    log.info("generating conformal magnets")
+    magnets_conformal_phi=jnp.linspace(0,1,params.magnets_conformal_num*plasma.nfp,endpoint=False)
 
     n_mode=2
     modes=[(m*plasma.nfp,n)
@@ -199,12 +199,12 @@ class Reactor:
       return ConformalMagnet(
         lambda u:self.structure_fn_offset(u+jnp.array([phi+pert(jnp.array([phi,u[1]])),0,0])),
         # lambda u:self.structure_fn_offset(u+jnp.array([phi,0,0])),
-        params.magnet_width)
+        params.magnets_conformal_width)
 
     # log.info(f"{magnet_phi=}")
     self.magnets=[
       GenerateMagnet(phi)
-      for phi in magnet_phi
+      for phi in magnets_conformal_phi
     ]
 
     ###################################

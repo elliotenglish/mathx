@@ -24,7 +24,6 @@ def reactor_test_helper(plasma,prefix=""):
   params=freact.ReactorParameters(
     wall_thickness=.2,
     magnet_width=.2,
-    magnet_height=.2,
     num_magnets=6*plasma.nfp,
     num_supports=0,
   )

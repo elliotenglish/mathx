@@ -31,17 +31,18 @@ def PlasmaChamber(structure_fn,thickness):
     closed=(True,True,False),
     min_segments=(4,4,1))
 
-def RingMagnet(structure_fn,width,height):
-  log.info(f"RingMagnet {width=} {height=}")
-  #pert=FourierND(mode_shape=(4,4))
-  # pert.coefficients=jnp.array([1./(1+abs(m[0])+abs(m[1])) for m in pert.modes])*.02
+def orthogonalize_basis(basis):
+  basis0=basis[0]
+  basis1=basis[1]-
+  return jnp.array([basis[0],basis[1]-(basis[0]@basis[1])/np.linalg.norm([basis1])
+
+def ConformalMagnet(structure_fn,width):
+  # log.info(f"RingMagnet {width=}")
 
   def pos_fn(u):
     x,b,n=structure_fn(jnp.array([0,u[0],0]))
     dphi=b[:,0]/jnp.linalg.norm(b[:,0])
-    xp=x+dphi*width*(u[1]-.5)+n*height*u[2]
-
-    # jax.debug.print("u={u} n={n} x={x} xp={xp} w={w} h={h}",u=u,n=n,x=x,xp=xp,w=width,h=height)
+    xp=x+dphi*width*(u[1]-.5)+n*width*u[2]
 
     return xp
 
@@ -49,9 +50,29 @@ def RingMagnet(structure_fn,width,height):
     pos_fn,
     closed=(True,False,False),
     min_segments=(4,1,1))
-  
+
+def RingMagnet(x,basis,radius,width):
+  def pos_fn(u):
+    r=radius+u[1]*width
+    return x+(u[0]-.5)*width*basis[0]+jnp.cos(u[1])*r*basis[1]+jnp.sin(u[1])*r*basis[2]
+    
+  return curvilinear.curvilinear(
+    pos_fn,
+    closed=(False,True,False)
+    min_segment=(1,4,1))
+
+def CylinderMagnet(x,basis,radius,length,thickness):
+  def pos_fn(u):
+    r=radius+u[1]*thickness
+    return x+(u[0]-.5)*length*basis[0]+jnp.cos(u[1])*r*basis[1]+jnp.sin(u[1])*r*basis[2]
+    
+  return curvilinear.curvilinear(
+    pos_fn,
+    closed=(False,True,False)
+    min_segment=(1,4,1))
+
 def Port(structure_fn,phi,theta,width):
-  pass
+
 
 def Support(structure_fn,uc,ground_level,width):
   log.info(f"Support {uc=} {ground_level=} {width=}")
@@ -69,10 +90,17 @@ def Support(structure_fn,uc,ground_level,width):
 @dataclass
 class ReactorParameters:
   wall_thickness: float
-  magnet_width: float
-  magnet_height: float
-  num_magnets: int
-  num_supports: int
+  magnets_conformal_num: int
+  magnets_conformal_width: float
+  magnets_ring_num: int
+  magnets_ring_distance: float
+  magnets_ring_width: float
+  magnets_cylinder_num: int
+  magnets_cylinder_margin: float
+  magnets_cylinder_phase: float
+  magnets_cylinder_thickness: float
+  supports_num: int
+  supports_width: float
   # primary_chamber: Torus.Parameters
   # magnets: list[Magnet.Parameters]
   # heating_ports: list[Port.Parameters]
@@ -168,10 +196,10 @@ class Reactor:
 
     # Use a function so that phi is copied into the function closure. A lambda doesn't do this.
     def GenerateMagnet(phi):
-      return RingMagnet(
-        # lambda u:self.structure_fn_offset(u+jnp.array([phi+pert(jnp.array([phi,u[1]])),0,0])),
-        lambda u:self.structure_fn_offset(u+jnp.array([phi,0,0])),
-        .2,.2)
+      return ConformalMagnet(
+        lambda u:self.structure_fn_offset(u+jnp.array([phi+pert(jnp.array([phi,u[1]])),0,0])),
+        # lambda u:self.structure_fn_offset(u+jnp.array([phi,0,0])),
+        params.magnet_width)
 
     # log.info(f"{magnet_phi=}")
     self.magnets=[

@@ -22,16 +22,16 @@ def reactor_test_helper(plasma,prefix=""):
   
   log.info("creating reactor")
   params=freact.ReactorParameters(
-    wall_thickness=.2,
+    wall_thickness=.001,
     magnets_conformal_num=0,
     # magnets_conformal_num=7*plasma.nfp,
     magnets_conformal_width=.2,
-    magnets_ring_num=0,
+    magnets_ring_num=1,
     # magnets_ring_num=3*plasma.nfp,
     magnets_ring_radius=2.2,
     magnets_ring_width=.2,
     # magnets_cylinder_num=0,
-    magnets_cylinder_num=1*plasma.nfp,
+    magnets_cylinder_num=1,#1*plasma.nfp,
     magnets_cylinder_radius=2.1,
     magnets_cylinder_length=5,
     magnets_cylinder_phase=0,

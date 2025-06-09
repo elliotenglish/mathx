@@ -110,14 +110,15 @@ def test_reactor_stellarator_conformal():
   reactor_test_helper(plasma,
                       params={
                         "magnets_conformal_num":7*plasma.nfp,
+                        "magnets_ring_num":3*plasma.nfp,
                       },
-                      prefix="Stellarator.Conformal.")
+                      prefix="Stellarator.ConformalRing.")
 
 def test_reactor_stellarator_cylinder():
   plasma=fsplasma.StellaratorPlasma()
   reactor_test_helper(plasma,
                       params={
-                        "magnets_cylinder_num":7*plasma.nfp,
+                        "magnets_cylinder_num":2*plasma.nfp,
                       },
                       prefix="Stellarator.Cylinder.")
   
@@ -128,7 +129,7 @@ def test_reactor_stellarator_twin():
                         "magnets_conformal_num":7*plasma.nfp,
                         "magnets_ring_num":3*plasma.nfp,
                         "supports_num":12,
-                        "ports_num":20
+                        "ports_num":32
                       },
                       prefix="Stellarator.Twin.",
                       clip=True)

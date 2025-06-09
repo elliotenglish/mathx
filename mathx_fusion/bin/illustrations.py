@@ -249,8 +249,32 @@ def generate_profiles():
   desc.plotting.plot_1d(eq,"iota")[0].savefig("iota.png")
   # desc.plotting.plot_1d(eq,"ne")[0].savefig("ne.png")
   
-def generate_magnet_viz():
-  pass
+def generate_magnet_cylinder_viz():
+  from mathx.geometry.fourier import FourierND
+  from mathx.core.jax_utilities import Generator
+  import plotly.graph_objects as go
+
+  rand=Generator(43223)
+  perturbation=FourierND(mode_shape=(4,4))
+  perturbation.coefficients=rand.uniform(
+    size=perturbation.coefficients.shape,low=-1,high=1)*.01
+  xs=jnp.linspace(0,1,50)
+  ys=jnp.linspace(0,1,100)
+  ls=[]
+  for x in xs:
+    l=[]
+    for y in ys:
+      p=perturbation(jnp.array([x,y]))
+      l.append([x+p,y])
+    ls.append(l)
+  ls=jnp.array(ls)
+
+  fig = go.Figure(data=[
+    go.Scatter(
+      x=[x for l in ls for x in l[:,0].tolist()+[None]],
+      y=[x for l in ls for x in l[:,1].tolist()+[None]],
+      mode='lines')])
+  fig.write_image("magnet_cylinder_lines.png")
 
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
@@ -258,4 +282,4 @@ if __name__=="__main__":
   # generate_particle_plasma_viz("torus",TorusPlasma(6,1.5),1,0)
   # generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1,0)
   # generate_profiles()
-  generate_magnet_viz()
+  generate_magnet_cylinder_viz()

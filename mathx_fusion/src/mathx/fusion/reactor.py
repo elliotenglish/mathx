@@ -10,6 +10,7 @@ from mathx.geometry import basis
 from mathx.core import log
 from mathx.core.jax_utilities import Generator
 from .toroidal_plasma import ToroidalPlasma
+from .component import Component
 # from .magnet import Magnet
 
 from dataclasses import dataclass
@@ -40,18 +41,22 @@ class ReactorParameters:
 
 def PlasmaSurface(plasma,surface):
   log.info(f"Plasma {surface=}")
-  return curvilinear.Curvilinear(
-    lambda u: plasma.get_surface(
-      jnp.array([u[0]*surface,u[1]*2*jnp.pi,u[2]*2*jnp.pi]))[0],
-    closed=(False,True,True),
-    degenerate=(((False,True),None),None,None))
+  return Component(
+    curvilinear.Curvilinear(
+      lambda u: plasma.get_surface(
+        jnp.array([u[0]*surface,u[1]*2*jnp.pi,u[2]*2*jnp.pi]))[0],
+      closed=(False,True,True),
+      degenerate=(((False,True),None),None,None)),
+    "Plasma")
 
 def PlasmaChamber(structure_fn,thickness):
   log.info(f"PlasmaChamber {thickness=}")
-  return curvilinear.Curvilinear(
-    lambda u: structure_fn(jnp.array([u[0],u[1],u[2]*thickness]))[0],
-    closed=(True,True,False),
-    min_segments=(4,4,1))
+  return Component(
+    curvilinear.Curvilinear(
+      lambda u: structure_fn(jnp.array([u[0],u[1],u[2]*thickness]))[0],
+      closed=(True,True,False),
+      min_segments=(4,4,1)),
+      "PlasmaChamber")
 
 def ConformalMagnet(structure_fn,width):
   # log.info(f"RingMagnet {width=}")
@@ -63,10 +68,12 @@ def ConformalMagnet(structure_fn,width):
 
     return xp
 
-  return curvilinear.Curvilinear(
-    pos_fn,
-    closed=(True,False,False),
-    min_segments=(4,1,1))
+  return Component(
+    curvilinear.Curvilinear(
+      pos_fn,
+      closed=(True,False,False),
+      min_segments=(4,1,1)),
+    "ConformalMagnet")
 
 def RingMagnet(x,basis,radius,width):
   def pos_fn(u):
@@ -76,10 +83,12 @@ def RingMagnet(x,basis,radius,width):
             jnp.cos(2*jnp.pi*u[1])*r*basis[:,1]+
             jnp.sin(2*jnp.pi*u[1])*r*basis[:,2])
     
-  return curvilinear.Curvilinear(
-    pos_fn,
-    closed=(False,True,False),
-    min_segments=(1,4,1))
+  return Component(
+    curvilinear.Curvilinear(
+      pos_fn,
+      closed=(False,True,False),
+      min_segments=(1,4,1)),
+    "RingMagnet")
 
 def CylinderMagnet(x,basis,radius,length,thickness):
   def pos_fn(u):
@@ -89,10 +98,12 @@ def CylinderMagnet(x,basis,radius,length,thickness):
         jnp.cos(2*jnp.pi*u[1])*r*basis[:,1]+
         jnp.sin(2*jnp.pi*u[1])*r*basis[:,2])
     
-  return curvilinear.Curvilinear(
-    pos_fn,
-    closed=(False,True,False),
-    min_segments=(1,4,1))
+  return Component(
+    curvilinear.Curvilinear(
+      pos_fn,
+      closed=(False,True,False),
+      min_segments=(1,4,1)),
+    "CylinderMagnet")
 
 def Port(structure_fn,uc,length,radius,thickness):
   log.info(f"Port {uc=} {length=} {radius=} {thickness=}")
@@ -107,7 +118,9 @@ def Port(structure_fn,uc,length,radius,thickness):
     # jax.debug.print("uc={uc} ua={ua} xa={xa}",uc=uc,ua=ua,xa=xa)
     return xa+u[0]*length*nc
   
-  return curvilinear.Curvilinear(pos_fn,closed=(False,True,False))
+  return Component(
+    curvilinear.Curvilinear(pos_fn,closed=(False,True,False)),
+    "Port")
 
 def Support(structure_fn,uc,ground_level,width):
   log.info(f"Support {uc=} {ground_level=} {width=}")
@@ -120,7 +133,9 @@ def Support(structure_fn,uc,ground_level,width):
     xa=structure_fn(ua)[0]
     return jnp.array([xa[0],xa[1],ground_level*(1-u[2])+u[2]*xa[2]])
 
-  return curvilinear.Curvilinear(pos_fn)
+  return Component(
+    curvilinear.Curvilinear(pos_fn),
+    "Support")
 
 class Reactor:
   # @functools.partial(jax.jit,static_argnums=(0,))
@@ -318,9 +333,9 @@ class Reactor:
       for theta in jnp.linspace(0,1,16):
         u=jnp.array([phi,theta,0])
         x,b,n=self.structure_fn_offset(u)
-        print(u,x,n)
+        # print(u,x,n)
         if n[2]<-.8:
-          log.info(f"support {u=} {x=} {n=}")
+          log.info(f"Support {u=} {x=} {n=}")
           self.supports.append(Support(self.structure_fn_offset,u,params.supports_ground_level,params.supports_width))
           break
 
@@ -343,6 +358,7 @@ class Reactor:
   def generate(self):
     log.info("meshing")
 
-    return (
-      [c.tesselate_surface(self.density) for c in self.components]
-    )
+    # return (
+    #   [c.tesselate_surface(self.density) for c in self.components]
+    # )
+    return self.components

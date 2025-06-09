@@ -3,21 +3,39 @@ import mathx.fusion.torus_plasma as ftplasma
 import mathx.fusion.stellarator_plasma as fsplasma
 import mathx.geometry.visualization as viz
 from mathx.core import log
+from mathx.geometry.mesh import Mesh
 
 import numpy as np
 
 def clip_mesh(mesh,x_plane):
   verts=[]
   vmap=dict()
-  for i,v in enumerate(mesh[0]):
+  for i,v in enumerate(mesh.vertex):
     if v[0]<x_plane:
       vmap[i]=len(verts)
       verts.append(v)
 
   tris=[[vmap[int(vi)] for vi in t]
-        for t in mesh[1]
+        for t in mesh.element
         if all([int(vi) in vmap for vi in t])]
-  return np.array(verts),np.array(tris)
+  return Mesh(np.array(verts),np.array(tris))
+
+colors={
+  # "Plasma":(255,100,0),
+  "Plasma":(255,0,0),
+  # "PlasmaChamber":(180,195,205),
+  "PlasmaChamber":(150,150,150),
+  # "ConformalMagnet":(70,70,150),
+  "ConformalMagnet":(0,100,200),
+  # "RingMagnet":(180,120,80),
+  "RingMagnet":(200,200,0),
+  # "CylinderMagnet":(70,70,150),
+  "CylinderMagnet":(50,180,50),
+  "Support":(150,160,170),
+  # "Port":(200,210,220),
+  # "Port":(100,100,255),
+  "Port":(0,200,50),
+}
 
 def reactor_test_helper(plasma,
                         params,
@@ -57,24 +75,25 @@ def reactor_test_helper(plasma,
 
   log.info("generating component meshes")
   components=reactor.generate()
-  for i,c in enumerate(components):
-    log.info(f"component {i} vtx={len(c[0])} tri={len(c[1])}")
-
-  if clip:
-    components=[clip_mesh(c,x_plane=7) if i>0 else c for i,c in enumerate(components)]
-    # Prune empty components
-    components=[c for c in components if len(c[1])]
 
   path="reactor.html"
   log.info(f"generating visualization")
-  viz_els=[
-    el
-    for idx,c in enumerate(components)
-    for el in [
-      viz.generate_mesh3d(c[0],c[1],color=rand.uniform(low=0,high=255,size=(3))),
-      # viz.generate_mesh3d(c[0],c[1],color=[0,255,0],wireframe=True)
+  viz_els=[]
+  density=64
+  for c in components:
+    mesh=c.object.tesselate_surface(density)
+    if clip and c.material!="Plasma":
+      mesh=clip_mesh(mesh,x_plane=7)
+      # Prune empty components
+      if len(mesh.element)==0:
+        continue
+
+    viz_els+=[
+      viz.generate_mesh3d(mesh=mesh,color=colors[c.material]),
+      #rand.uniform(low=0,high=255,size=(3))),
+      # viz.generate_mesh3d(mesh=mesh,color=[0,255,0],wireframe=True)
     ]
-  ]
+
   log.info(f"writing visualization output={path}")
   viz.write_visualization(
     viz_els,

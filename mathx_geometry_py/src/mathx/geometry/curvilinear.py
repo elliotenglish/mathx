@@ -1,4 +1,5 @@
 from . import hexagon
+from .mesh import Mesh
 from mathx.core import log
 import numpy as np
 import jax
@@ -84,7 +85,7 @@ def generate_mesh_volume(pos_fn,segments,closed=(False,False,False),degenerate=N
     vtx=jnp.array(vtx)
     elem=jnp.array(elem,dtype=jnp.int32)
 
-  return vtx,elem
+  return Mesh(vtx,elem)
 
 class SimplexMesh:
   def __init__(self):
@@ -156,7 +157,7 @@ def generate_mesh_surface(pos_fn,segments,closed=(False,False,False),degenerate=
   else:
     elem=jnp.array(elem)
 
-  return vtx,elem
+  return Mesh(vtx,elem)
 
 def surface_basis_transform(pos_fn):
   """

@@ -9,9 +9,9 @@ def shape_test_helper(name,shape):
   print()
   print(name)
 
-  vtx,tet_idx=shape.tesselate_volume(16)
-  print(f"{len(vtx)=} {len(tet_idx)=}")
-  tri_idx=viz.get_boundary_faces(tet_idx)
+  tet_mesh=shape.tesselate_volume(16)
+  print(f"{len(tet_mesh.vertex)=} {len(tet_mesh.element)=}")
+  tri_idx=viz.get_boundary_faces(tet_mesh.element)
 
   # vtx,tri_idx=shape.tesselate_surface(16)
 
@@ -21,7 +21,7 @@ def shape_test_helper(name,shape):
   # print(tri_idx)
   viz.write_visualization(
     [
-      viz.generate_mesh3d(vtx,
+      viz.generate_mesh3d(tet_mesh.vertex,
                           tri_idx,
                           color=[255,0,0],
                           wireframe=True,

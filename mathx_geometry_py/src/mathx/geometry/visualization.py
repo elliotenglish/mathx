@@ -70,8 +70,8 @@ def generate_mesh3d(vtx=None,
                     flatshading=True,
                     wireframe=False):
   if mesh is not None:
-    vtx=mesh[0]
-    tri=mesh[1]
+    vtx=mesh.vertex
+    tri=mesh.element
   assert vtx is not None
   assert tri is not None
 
@@ -80,7 +80,7 @@ def generate_mesh3d(vtx=None,
     # for t in tri:
     #   for i in range(3):
     #     edges.add((t[i],t[(i+1)%3]))
-    edges=np.concatenate([tri[:,[i,(i+1)%4]] for i in range(3)])
+    edges=np.concatenate([tri[:,[i,(i+1)%3]] for i in range(3)])
     edges=np.unique(edges,axis=0)
     # x=[]
     # y=[]

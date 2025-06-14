@@ -10,6 +10,7 @@ from mathx.fusion.torus_plasma import TorusPlasma
 from mathx.fusion.stellarator_plasma import StellaratorPlasma
 from mathx.fusion import equilibrium as eqx
 from mathx.fusion import reactor as freact
+import plotly.graph_objects as go
 
 def compute_bounds(x):
   return jnp.min(x,axis=0),jnp.max(x,axis=0)
@@ -164,7 +165,7 @@ def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
 
   field_fn_rtz_batch=jax.vmap(field_fn_rtz,in_axes=(0),out_axes=(0,0))
   field_fn_rtz_batch=jax.jit(field_fn_rtz_batch)
-  
+
   surface_fn_batch=jax.vmap(plasma.get_surface,in_axes=(0),out_axes=(0,0))
   surface_fn_batch=jax.jit(surface_fn_batch)
 
@@ -183,7 +184,7 @@ def generate_particle_plasma_viz(name,plasma,num_particles,num_field_lines):
     log.info("computing magnetic field lines")
     field_x0,_=surface_fn_batch(
       rand.uniform(size=(num_field_lines,3))*jnp.array([[1,2*jnp.pi,2*jnp.pi]]))
-    
+
     log.info(f"{field_x0=}")
 
     log.info("integrating")
@@ -248,11 +249,10 @@ def generate_profiles():
   desc.plotting.plot_1d(eq,"ni")[0].savefig("ni.png")
   desc.plotting.plot_1d(eq,"iota")[0].savefig("iota.png")
   # desc.plotting.plot_1d(eq,"ne")[0].savefig("ne.png")
-  
+
 def generate_magnet_cylinder_viz():
   from mathx.geometry.fourier import FourierND
   from mathx.core.jax_utilities import Generator
-  import plotly.graph_objects as go
 
   rand=Generator(43223)
   perturbation=FourierND(mode_shape=(4,4))
@@ -276,10 +276,24 @@ def generate_magnet_cylinder_viz():
       mode='lines')])
   fig.write_image("magnet_cylinder_lines.png")
 
+def generate_neutron_penetration_decay():
+  xs=jnp.linspace(0,2,100)
+
+  ys=jnp.exp(-3*xs)
+  # ys=[exp(-x) for x in xs]
+
+  fig = go.Figure(data=[
+    go.Scatter(
+      x=xs,
+      y=ys,
+      mode='lines')])
+  fig.write_image("neutron_penetration.png")
+
 if __name__=="__main__":
   # generate_particle_constant_B_viz()
   # generate_particle_cylindrical_B_viz()
   # generate_particle_plasma_viz("torus",TorusPlasma(6,1.5),1,0)
   # generate_particle_plasma_viz("stellarator",StellaratorPlasma(),1,0)
   # generate_profiles()
-  generate_magnet_cylinder_viz()
+  # generate_magnet_cylinder_viz()
+  generate_neutron_penetration_decay()

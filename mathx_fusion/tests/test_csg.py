@@ -1,6 +1,6 @@
-from code_fusion_reactor import visualization as viz
-from code_fusion_reactor import hexagon as hexagon
-from code_fusion_reactor.logging import initialize_logging
+from mathx.geometry import visualization as viz
+from mathx.geometry import hexagon as hexagon
+from mathx.core import log
 import logging
 
 # from CGAL import CGAL_Triangulation_3 as T3

@@ -4,7 +4,7 @@ from . import optimizer
 from . import database
 from . import models
 from mathx.core import log
-from . import jax_utilities
+from mathx.core import jax_utilities
 from .hyperparameters import Hyperparameters
 from .agent import Agent
 from .ornstein_uhlenbeck_process import OrnsteinUhlenbeckProcess

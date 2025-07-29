@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import flax.nnx as nnx
 from . import mlp
 # from . import utilities
-from . import jax_utilities
+from mathx.core import jax_utilities
 
 class PolicyFunction(nnx.Module):
   def __init__(self,params):

@@ -3,7 +3,7 @@ import gymnasium_system
 import quadratic_system
 from mathx.robotics.custom_agent import CustomAgent
 # from mathx.robotics.acme_agent import AcmeAgent
-from mathx.robotics.sb3_agent import SB3Agent
+# from mathx.robotics.sb3_agent import SB3Agent
 
 from mathx.robotics.solver import Solver
 from mathx.robotics.mujoco_system import MujocoSystem
@@ -36,12 +36,14 @@ def run_test(name,system,agent,default_steps,default_episodes):
 
 def test_reinforcement_learning_quadratic1d():
   system=quadratic_system.QuadraticSystem(1,False)
-  agent=SB3Agent({"beta":.9},system.state_space(),system.action_space())
+  # agent=SB3Agent({"beta":.9},system.state_space(),system.action_space())
+  agent=CustomAgent({"beta":.9},system.state_space(),system.action_space())
   run_test("optimization_quadratic1d",system,agent,50,200)
 
 def test_reinforcement_learning_quadratic2d():
   system=quadratic_system.QuadraticSystem(2,False)
-  agent=SB3Agent({"beta":.9},system.state_space(),system.action_space())
+  # agent=SB3Agent({"beta":.9},system.state_space(),system.action_space())
+  agent=CustomAgent({"beta":.9},system.state_space(),system.action_space())
   run_test("optimization_quadratic2d",system,agent,50,200)
 
 def test_reinforcement_learning_pendulum_mujoco():

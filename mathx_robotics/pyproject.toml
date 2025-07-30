@@ -8,7 +8,7 @@ install_requires=[]
 [project]
 name="mathx-robotics"
 version="1.0.0"
-requires-python = "<3.12,>=3.11" #dm-reverb only works with older python
+#requires-python = "<3.12,>=3.11" #dm-reverb only works with older python
 dependencies=[
   "numpy", #Tensorflow version below needs an older version of numpy
   "mujoco",
@@ -19,16 +19,17 @@ dependencies=[
   "jax",
   #"jax[cuda12]==0.4.34", #For some reason this version is much faster.
   "optax",
-  "flax==0.10.4", #0.10.5 broken something so errors regarding changing trace level are emitted during flax.jit
+  "flax",
+  #"flax==0.10.4", #0.10.5 broken something so errors regarding changing trace level are emitted during flax.jit
   #"opencv-python",
-  "gym==0.26.2",
+  #"gym==0.28.2",
   "gymnasium[classic_control]",
   "matplotlib",
   "pyqt6", #Needed for interactive plots
   "natsort",
   #"fiblat<0.6",
-  "rlax", #Needed to avoid dm-acme/dm-env installing rlax from the repo
-  "dm-haiku",
+  #"rlax", #Needed to avoid dm-acme/dm-env installing rlax from the repo
+  #"dm-haiku",
   #"dm-haiku @ git+https://github.com/google-deepmind/dm-haiku.git",
   #"dm-reverb[tensorflow]", #This forces a compatible version of tensorflow to be installed
   #"dm-reverb @ git+https://github.com/google-deepmind/reverb.git",
@@ -36,12 +37,12 @@ dependencies=[
   #"dm-reverb-nightly[tensorflow]",
   "dm-env",
   #"dm-env @ git+https://github.com/google-deepmind/dm_env.git",
-  "dm-control",
+  #"dm-control",
   #"dm-control @ git+https://github.com/google-deepmind/dm_control.git",
   "dm-acme",
   #"dm-acme @ git+https://github.com/google-deepmind/acme.git",
   "launchpad",
   #"gymnasium",
-  "stable-baselines3",
+  #"stable-baselines3",
   "imageio"
 ]
